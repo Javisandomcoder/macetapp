@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__ide__getDiagnostics",
+      "Bash(./gradlew build:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(.\\gradlew.bat build:*)",
+      "Bash(gradlew.bat build:*)",
+      "Bash(cmd:*)",
+      "Bash(dir:*)",
+      "Bash(./gradlew.bat tasks:*)",
+      "Bash(findstr:*)",
+      "Read(//c/Users/javis/Pictures/**)",
+      "Bash(copy:*)",
+      "Bash(./gradlew:*)",
+      "Bash(adb:*)",
+      "Read(//c/Program Files/Android/Android Studio/jbr/**)",
+      "Bash(export JAVA_HOME=\"C:\\Program Files\\Android\\Android Studio\\jbr\")",
+      "Read(//c/Users/javis/**)",
+      "Bash(source ~/.bashrc)",
+      "Bash(java:*)",
+      "Bash(.gradlew.bat assembleDebug)",
+      "Bash(powershell.exe:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
