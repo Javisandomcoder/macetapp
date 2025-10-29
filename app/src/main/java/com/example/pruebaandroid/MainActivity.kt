@@ -13,29 +13,31 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
-import com.example.pruebaandroid.data.PlantViewModel
 import com.example.pruebaandroid.data.PreferencesManager
 import com.example.pruebaandroid.navigation.NavGraph
-import com.example.pruebaandroid.notifications.AlarmScheduler
 import com.example.pruebaandroid.ui.theme.PruebaAndroidTheme
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    private val viewModel: PlantViewModel by viewModels()
+    @Inject
+    lateinit var preferencesManager: PreferencesManager
+
     private val showAlarmPermissionDialog = mutableStateOf(false)
 
     private val requestNotificationPermissionLauncher = registerForActivityResult(
@@ -55,13 +57,18 @@ class MainActivity : ComponentActivity() {
         requestNotificationPermission()
 
         setContent {
-            val preferencesManager = remember { PreferencesManager.getInstance(this) }
-            val isDarkMode by preferencesManager.isDarkMode.collectAsState()
+            val theme by preferencesManager.theme.collectAsStateWithLifecycle(initialValue = com.example.pruebaandroid.ui.Theme.SYSTEM)
 
-            PruebaAndroidTheme(darkTheme = isDarkMode) {
+            val useDarkTheme = when (theme) {
+                com.example.pruebaandroid.ui.Theme.LIGHT -> false
+                com.example.pruebaandroid.ui.Theme.DARK -> true
+                com.example.pruebaandroid.ui.Theme.SYSTEM -> isSystemInDarkTheme()
+            }
+
+            PruebaAndroidTheme(darkTheme = useDarkTheme) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     val navController = rememberNavController()
-                    NavGraph(navController = navController, viewModel = viewModel)
+                    NavGraph(navController = navController)
 
                     // Dialog for alarm permission
                     if (showAlarmPermissionDialog.value) {
@@ -82,8 +89,6 @@ class MainActivity : ComponentActivity() {
                             dismissButton = {
                                 TextButton(onClick = {
                                     showAlarmPermissionDialog.value = false
-                                    // Still try to schedule - might work on some devices
-                                    AlarmScheduler.scheduleAlarmsForPlants(this@MainActivity)
                                 }) {
                                     Text("Continuar de todos modos")
                                 }
@@ -134,13 +139,11 @@ class MainActivity : ComponentActivity() {
                 Log.w(TAG, "Cannot schedule exact alarms - showing permission dialog")
                 showAlarmPermissionDialog.value = true
             } else {
-                Log.d(TAG, "Can schedule exact alarms - scheduling alarms for plants")
-                AlarmScheduler.scheduleAlarmsForPlants(this)
+                Log.d(TAG, "Can schedule exact alarms.")
             }
         } else {
             // No permission needed for Android 11 and below
-            Log.d(TAG, "Android 11 or below - scheduling alarms for plants directly")
-            AlarmScheduler.scheduleAlarmsForPlants(this)
+            Log.d(TAG, "Android 11 or below - no exact alarm permission needed.")
         }
     }
 

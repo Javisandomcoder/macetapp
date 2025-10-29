@@ -1,0 +1,21 @@
+Categories:
+- Gardening
+- Productivity
+
+License:
+MIT
+
+Author:
+@javisandomcoder
+
+SourceCode:
+https://github.com/Javisandomcoder/macetohuerto
+
+IssueTracker:
+https://github.com/Javisandomcoder/macetohuerto/issues
+
+Changelog:
+• Version 1.0: Initial release with complete plant management system
+• Advanced care tracking (fertilization, transplants)
+• Smart notifications and home widget
+• Photo gallery and seasonal watering schedules

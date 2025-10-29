@@ -1,147 +1,161 @@
 package com.example.pruebaandroid.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.navArgument
+import androidx.navigation.toRoute
 import com.example.pruebaandroid.data.PlantViewModel
-import com.example.pruebaandroid.screens.AddEditPlantScreen
-import com.example.pruebaandroid.screens.PlantDetailScreen
-import com.example.pruebaandroid.screens.PlantListScreen
-import com.example.pruebaandroid.screens.PlantPhotoGalleryScreen
-import com.example.pruebaandroid.screens.AddPhotoScreen
-import com.example.pruebaandroid.screens.SettingsScreen
+import com.example.pruebaandroid.screens.*
+import kotlinx.serialization.Serializable
 
-sealed class Screen(val route: String) {
-    object PlantList : Screen("plant_list")
-    object AddPlant : Screen("add_plant")
-    object PlantDetail : Screen("plant_detail/{plantId}") {
-        fun createRoute(plantId: Int) = "plant_detail/$plantId"
-    }
-    object EditPlant : Screen("edit_plant/{plantId}") {
-        fun createRoute(plantId: Int) = "edit_plant/$plantId"
-    }
-    object PhotoGallery : Screen("photo_gallery/{plantId}") {
-        fun createRoute(plantId: Int) = "photo_gallery/$plantId"
-    }
-    object AddPhoto : Screen("add_photo/{plantId}") {
-        fun createRoute(plantId: Int) = "add_photo/$plantId"
-    }
-    object Settings : Screen("settings")
-}
+// Define serializable objects/classes for each screen
+@Serializable
+object PlantList
+
+@Serializable
+object AddPlant
+
+@Serializable
+data class PlantDetail(val plantId: Int)
+
+@Serializable
+data class EditPlant(val plantId: Int)
+
+@Serializable
+data class PhotoGallery(val plantId: Int)
+
+@Serializable
+data class AddPhoto(val plantId: Int)
+
+@Serializable
+data class CareHistory(val plantId: Int, val plantName: String)
+
+@Serializable
+data class AddCareActivity(val plantId: Int, val plantName: String)
+
+@Serializable
+object Settings
 
 @Composable
 fun NavGraph(
-    navController: NavHostController,
-    viewModel: PlantViewModel
+    navController: NavHostController
 ) {
     NavHost(
         navController = navController,
-        startDestination = Screen.PlantList.route
+        startDestination = PlantList // Type-safe start destination
     ) {
-        composable(Screen.PlantList.route) {
+        composable<PlantList> { // Type-safe composable
+            val viewModel: PlantViewModel = hiltViewModel()
             PlantListScreen(
                 viewModel = viewModel,
                 onNavigateToAddPlant = {
-                    navController.navigate(Screen.AddPlant.route)
+                    navController.navigate(AddPlant)
                 },
                 onNavigateToPlantDetail = { plantId ->
-                    navController.navigate(Screen.PlantDetail.createRoute(plantId))
+                    navController.navigate(PlantDetail(plantId = plantId))
                 },
                 onNavigateToSettings = {
-                    navController.navigate(Screen.Settings.route)
+                    navController.navigate(Settings)
                 }
             )
         }
 
-        composable(Screen.AddPlant.route) {
+        composable<AddPlant> {
+            val viewModel: PlantViewModel = hiltViewModel()
             AddEditPlantScreen(
                 viewModel = viewModel,
                 plantId = null,
-                onNavigateBack = {
-                    navController.popBackStack()
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable<PlantDetail> { backStackEntry ->
+            val args = backStackEntry.toRoute<PlantDetail>() // Type-safe argument retrieval
+            val viewModel: PlantViewModel = hiltViewModel()
+            PlantDetailScreen(
+                viewModel = viewModel,
+                plantId = args.plantId,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToEdit = { id ->
+                    navController.navigate(EditPlant(plantId = id))
+                },
+                onNavigateToGallery = { id ->
+                    navController.navigate(PhotoGallery(plantId = id))
+                },
+                onNavigateToCareHistory = { id, name ->
+                    navController.navigate(CareHistory(plantId = id, plantName = name))
+                },
+                onNavigateToAddActivity = { id ->
+                    navController.navigate(AddCareActivity(plantId = id, plantName = ""))
                 }
             )
         }
 
-        composable(
-            route = Screen.PlantDetail.route,
-            arguments = listOf(navArgument("plantId") { type = NavType.IntType })
-        ) { backStackEntry ->
-            val plantId = backStackEntry.arguments?.getInt("plantId")
-            plantId?.let {
-                PlantDetailScreen(
-                    viewModel = viewModel,
-                    plantId = it,
-                    onNavigateBack = {
-                        navController.popBackStack()
-                    },
-                    onNavigateToEdit = { id ->
-                        navController.navigate(Screen.EditPlant.createRoute(id))
-                    },
-                    onNavigateToGallery = { id ->
-                        navController.navigate(Screen.PhotoGallery.createRoute(id))
-                    }
-                )
-            }
+        composable<PhotoGallery> { backStackEntry ->
+            val args = backStackEntry.toRoute<PhotoGallery>()
+            val viewModel: PlantViewModel = hiltViewModel()
+            PlantPhotoGalleryScreen(
+                viewModel = viewModel,
+                plantId = args.plantId,
+                onNavigateBack = { navController.popBackStack() },
+                onAddPhoto = {
+                    navController.navigate(AddPhoto(plantId = args.plantId))
+                }
+            )
         }
 
-        composable(
-            route = Screen.PhotoGallery.route,
-            arguments = listOf(navArgument("plantId") { type = NavType.IntType })
-        ) { backStackEntry ->
-            val plantId = backStackEntry.arguments?.getInt("plantId")
-            plantId?.let {
-                PlantPhotoGalleryScreen(
-                    viewModel = viewModel,
-                    plantId = it,
-                    onNavigateBack = {
-                        navController.popBackStack()
-                    },
-                    onAddPhoto = {
-                        navController.navigate(Screen.AddPhoto.createRoute(it))
-                    }
-                )
-            }
+        composable<AddPhoto> { backStackEntry ->
+            val args = backStackEntry.toRoute<AddPhoto>()
+            val viewModel: PlantViewModel = hiltViewModel()
+            AddPhotoScreen(
+                viewModel = viewModel,
+                plantId = args.plantId,
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
 
-        composable(
-            route = Screen.AddPhoto.route,
-            arguments = listOf(navArgument("plantId") { type = NavType.IntType })
-        ) { backStackEntry ->
-            val plantId = backStackEntry.arguments?.getInt("plantId")
-            plantId?.let {
-                AddPhotoScreen(
-                    viewModel = viewModel,
-                    plantId = it,
-                    onNavigateBack = {
-                        navController.popBackStack()
-                    }
-                )
-            }
-        }
-
-        composable(
-            route = Screen.EditPlant.route,
-            arguments = listOf(navArgument("plantId") { type = NavType.IntType })
-        ) { backStackEntry ->
-            val plantId = backStackEntry.arguments?.getInt("plantId")
+        composable<EditPlant> { backStackEntry ->
+            val args = backStackEntry.toRoute<EditPlant>()
+            val viewModel: PlantViewModel = hiltViewModel()
             AddEditPlantScreen(
                 viewModel = viewModel,
-                plantId = plantId,
-                onNavigateBack = {
-                    navController.popBackStack()
+                plantId = args.plantId,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable<Settings> {
+            val viewModel: PlantViewModel = hiltViewModel()
+            SettingsScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable<CareHistory> { backStackEntry ->
+            val args = backStackEntry.toRoute<CareHistory>()
+            val viewModel: PlantViewModel = hiltViewModel()
+            CareHistoryScreen(
+                plantId = args.plantId,
+                plantName = args.plantName,
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onAddActivity = { id ->
+                    navController.navigate(AddCareActivity(plantId = id, plantName = args.plantName))
                 }
             )
         }
 
-        composable(Screen.Settings.route) {
-            SettingsScreen(
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
+        composable<AddCareActivity> { backStackEntry ->
+            val args = backStackEntry.toRoute<AddCareActivity>()
+            val viewModel: PlantViewModel = hiltViewModel()
+            AddCareActivityScreen(
+                plantId = args.plantId,
+                plantName = args.plantName,
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
     }

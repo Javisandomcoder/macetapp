@@ -6,13 +6,14 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 
 @Database(
-    entities = [Plant::class, PlantPhoto::class],
-    version = 4,
+    entities = [Plant::class, PlantPhoto::class, CareActivity::class],
+    version = 5,
     exportSchema = false
 )
 abstract class PlantDatabase : RoomDatabase() {
     abstract fun plantDao(): PlantDao
     abstract fun plantPhotoDao(): PlantPhotoDao
+    abstract fun careActivityDao(): CareActivityDao
 
     companion object {
         @Volatile
@@ -24,9 +25,8 @@ abstract class PlantDatabase : RoomDatabase() {
                     context.applicationContext,
                     PlantDatabase::class.java,
                     "plant_database"
-                )
-                .fallbackToDestructiveMigration()
-                .build()
+                ).fallbackToDestructiveMigration()
+                    .build()
                 INSTANCE = instance
                 instance
             }

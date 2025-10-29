@@ -2,44 +2,35 @@ package com.example.pruebaandroid.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.example.pruebaandroid.ui.Theme
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class PreferencesManager(context: Context) {
+@Singleton
+class PreferencesManager @Inject constructor(@ApplicationContext context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences(
         "macetohuerto_prefs",
         Context.MODE_PRIVATE
     )
 
-    private val _notificationHour = MutableStateFlow(getNotificationHour())
-    val notificationHour: StateFlow<Int> = _notificationHour
 
-    private val _notificationMinute = MutableStateFlow(getNotificationMinute())
-    val notificationMinute: StateFlow<Int> = _notificationMinute
+
+
 
     private val _notificationsEnabled = MutableStateFlow(getNotificationsEnabled())
     val notificationsEnabled: StateFlow<Boolean> = _notificationsEnabled
 
-    private val _isDarkMode = MutableStateFlow(getDarkMode())
-    val isDarkMode: StateFlow<Boolean> = _isDarkMode
+    private val _theme = MutableStateFlow(getTheme())
+    val theme: StateFlow<Theme> = _theme
 
-    fun setNotificationTime(hour: Int, minute: Int) {
-        prefs.edit().apply {
-            putInt(KEY_NOTIFICATION_HOUR, hour)
-            putInt(KEY_NOTIFICATION_MINUTE, minute)
-            apply()
-        }
-        _notificationHour.value = hour
-        _notificationMinute.value = minute
-    }
 
-    fun getNotificationHour(): Int {
-        return prefs.getInt(KEY_NOTIFICATION_HOUR, DEFAULT_HOUR)
-    }
 
-    fun getNotificationMinute(): Int {
-        return prefs.getInt(KEY_NOTIFICATION_MINUTE, DEFAULT_MINUTE)
-    }
+
+
+
 
     fun setNotificationsEnabled(enabled: Boolean) {
         prefs.edit().apply {
@@ -53,35 +44,51 @@ class PreferencesManager(context: Context) {
         return prefs.getBoolean(KEY_NOTIFICATIONS_ENABLED, true)
     }
 
-    fun setDarkMode(enabled: Boolean) {
+    fun setTheme(theme: Theme) {
         prefs.edit().apply {
-            putBoolean(KEY_DARK_MODE, enabled)
+            putString(KEY_THEME, theme.name)
             apply()
         }
-        _isDarkMode.value = enabled
+        _theme.value = theme
     }
 
-    fun getDarkMode(): Boolean {
-        return prefs.getBoolean(KEY_DARK_MODE, false)
+    fun getTheme(): Theme {
+        val themeName = prefs.getString(KEY_THEME, Theme.SYSTEM.name) ?: Theme.SYSTEM.name
+        return Theme.valueOf(themeName)
+    }
+
+
+
+    fun setNotificationTime(hour: Int, minute: Int) {
+        prefs.edit().apply {
+            putInt(KEY_NOTIFICATION_HOUR, hour)
+            putInt(KEY_NOTIFICATION_MINUTE, minute)
+            apply()
+        }
+    }
+
+    fun getNotificationTime(): Pair<Int, Int> {
+        val hour = prefs.getInt(KEY_NOTIFICATION_HOUR, 9) // Default 9 AM
+        val minute = prefs.getInt(KEY_NOTIFICATION_MINUTE, 0) // Default 0 minutes
+        return Pair(hour, minute)
     }
 
     companion object {
+
+        private const val KEY_NOTIFICATIONS_ENABLED = "notifications_enabled"
+        private const val KEY_THEME = "theme"
+
         private const val KEY_NOTIFICATION_HOUR = "notification_hour"
         private const val KEY_NOTIFICATION_MINUTE = "notification_minute"
-        private const val KEY_NOTIFICATIONS_ENABLED = "notifications_enabled"
-        private const val KEY_DARK_MODE = "dark_mode"
 
-        private const val DEFAULT_HOUR = 9 // 9 AM
-        private const val DEFAULT_MINUTE = 0
+
 
         @Volatile
-        private var INSTANCE: PreferencesManager? = null
+        private var instance: PreferencesManager? = null
 
         fun getInstance(context: Context): PreferencesManager {
-            return INSTANCE ?: synchronized(this) {
-                val instance = PreferencesManager(context.applicationContext)
-                INSTANCE = instance
-                instance
+            return instance ?: synchronized(this) {
+                instance ?: PreferencesManager(context.applicationContext).also { instance = it }
             }
         }
     }

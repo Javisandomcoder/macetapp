@@ -7,9 +7,16 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material3.*
@@ -18,12 +25,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.pruebaandroid.data.Plant
+import com.example.pruebaandroid.data.PlantFilter
 import com.example.pruebaandroid.data.PlantViewModel
+import com.example.pruebaandroid.data.SortBy
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.*
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,11 +46,17 @@ fun PlantListScreen(
     onNavigateToPlantDetail: (Int) -> Unit,
     onNavigateToSettings: () -> Unit
 ) {
-    val plants by viewModel.allPlants.collectAsState(initial = emptyList())
+    val plants by viewModel.filteredAndSortedPlants.collectAsStateWithLifecycle(initialValue = emptyList())
+    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+    val sortBy by viewModel.sortBy.collectAsStateWithLifecycle()
+    val filterBy by viewModel.filterBy.collectAsStateWithLifecycle()
     val plantsNeedingWater = plants.count { it.nextWateringDate <= System.currentTimeMillis() }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    
+    var showFilterDialog by remember { mutableStateOf(false) }
+    var showSortDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -55,6 +74,12 @@ fun PlantListScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { showFilterDialog = true }) {
+                        Icon(Icons.Default.FilterList, contentDescription = "Filtrar")
+                    }
+                    IconButton(onClick = { showSortDialog = true }) {
+                        Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = "Ordenar")
+                    }
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(Icons.Default.Settings, contentDescription = "Configuración")
                     }
@@ -72,47 +97,131 @@ fun PlantListScreen(
             }
         }
     ) { paddingValues ->
-        if (plants.isEmpty()) {
-            Box(
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            // Search bar
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { viewModel.updateSearchQuery(it) },
+                placeholder = { Text("Buscar plantas...") },
+                leadingIcon = {
+                    Icon(Icons.Default.Search, contentDescription = "Buscar")
+                },
+                trailingIcon = {
+                    if (searchQuery.isNotBlank()) {
+                        IconButton(onClick = { viewModel.updateSearchQuery("") }) {
+                            Icon(Icons.Default.Clear, contentDescription = "Limpiar búsqueda")
+                        }
+                    }
+                },
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                singleLine = true
+            )
+
+            // Filter and sort indicators
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    "No hay plantas. Agrega tu primera planta!",
-                    style = MaterialTheme.typography.bodyLarge
+                    text = when (filterBy) {
+                        PlantFilter.ALL -> "Todas las plantas"
+                        PlantFilter.NEEDS_WATER -> "Necesitan riego"
+                        PlantFilter.DOES_NOT_NEED_WATER -> "No necesitan riego"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = when (sortBy) {
+                        SortBy.NAME -> "Ordenado por nombre"
+                        SortBy.SPECIES -> "Ordenado por especie"
+                        SortBy.NEXT_WATERING -> "Ordenado por próximo riego"
+                        SortBy.LAST_WATERED -> "Ordenado por último riego"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                itemsIndexed(
-                    items = plants,
-                    key = { _, plant -> plant.id }
-                ) { index, plant ->
-                    AnimatedPlantCard(
-                        plant = plant,
-                        index = index,
-                        onPlantClick = { onNavigateToPlantDetail(plant.id) },
-                        onWaterClick = {
-                            viewModel.waterPlant(plant)
-                            scope.launch {
-                                snackbarHostState.showSnackbar(
-                                    message = "✓ ${plant.name} ha sido regada",
-                                    duration = SnackbarDuration.Short
-                                )
-                            }
+
+            if (plants.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (searchQuery.isNotBlank() || filterBy != PlantFilter.ALL) {
+                            "No se encontraron plantas con los filtros actuales"
+                        } else {
+                            "No hay plantas. Agrega tu primera planta!"
                         },
-                        onDeleteClick = { viewModel.deletePlant(plant) }
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .weight(1f),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    itemsIndexed(
+                        items = plants,
+                        key = { _, plant -> plant.id }
+                    ) { index, plant ->
+                        AnimatedPlantCard(
+                            plant = plant,
+                            index = index,
+                            onPlantClick = { onNavigateToPlantDetail(plant.id) },
+                            onWaterClick = {
+                                viewModel.waterPlant(plant)
+                                scope.launch {
+                                    snackbarHostState.showSnackbar(
+                                        message = "✓ ${plant.name} ha sido regada",
+                                        duration = SnackbarDuration.Short
+                                    )
+                                }
+                            },
+                            onDeleteClick = { viewModel.deletePlant(plant) }
+                        )
+                    }
+                }
             }
+        }
+        
+        // Filter and Sort Dialogs
+        if (showFilterDialog) {
+            FilterDialog(
+                currentFilter = filterBy,
+                onFilterSelected = { filter ->
+                    viewModel.updateFilterBy(filter)
+                    showFilterDialog = false
+                },
+                onDismiss = { showFilterDialog = false }
+            )
+        }
+        
+        if (showSortDialog) {
+            SortDialog(
+                currentSort = sortBy,
+                onSortSelected = { sort ->
+                    viewModel.updateSortBy(sort)
+                    showSortDialog = false
+                },
+                onDismiss = { showSortDialog = false }
+            )
         }
     }
 }
@@ -152,13 +261,100 @@ fun AnimatedPlantCard(
 }
 
 @Composable
+fun FilterDialog(
+    currentFilter: PlantFilter,
+    onFilterSelected: (PlantFilter) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Filtrar plantas") },
+        text = {
+            Column {
+                PlantFilter.values().forEach { filter ->
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                            .clickable { onFilterSelected(filter) },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = currentFilter == filter,
+                            onClick = { onFilterSelected(filter) }
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = when (filter) {
+                                PlantFilter.ALL -> "Todas las plantas"
+                                PlantFilter.NEEDS_WATER -> "Necesitan riego"
+                                PlantFilter.DOES_NOT_NEED_WATER -> "No necesitan riego"
+                            }
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("OK")
+            }
+        }
+    )
+}
+
+@Composable
+fun SortDialog(
+    currentSort: SortBy,
+    onSortSelected: (SortBy) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Ordenar plantas") },
+        text = {
+            Column {
+                SortBy.values().forEach { sort ->
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                            .clickable { onSortSelected(sort) },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = currentSort == sort,
+                            onClick = { onSortSelected(sort) }
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = when (sort) {
+                                SortBy.NAME -> "Nombre"
+                                SortBy.SPECIES -> "Especie"
+                                SortBy.NEXT_WATERING -> "Próximo riego"
+                                SortBy.LAST_WATERED -> "Último riego"
+                            }
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("OK")
+            }
+        }
+    )
+}
+
+@Composable
 fun PlantCard(
     plant: Plant,
     onPlantClick: () -> Unit,
     onWaterClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
-    val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+    val formatter = remember { DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale.getDefault()) }
     val needsWater = plant.nextWateringDate <= System.currentTimeMillis()
     var showDeleteDialog by remember { mutableStateOf(false) }
 
@@ -290,7 +486,7 @@ Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         style = MaterialTheme.typography.bodySmall
                     )
                     Text(
-                        text = dateFormat.format(Date(plant.lastWateredDate)),
+                        text = Instant.ofEpochMilli(plant.lastWateredDate).atZone(ZoneId.systemDefault()).toLocalDate().format(formatter),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -303,7 +499,7 @@ Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         color = if (needsWater) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = dateFormat.format(Date(plant.nextWateringDate)),
+                        text = Instant.ofEpochMilli(plant.nextWateringDate).atZone(ZoneId.systemDefault()).toLocalDate().format(formatter),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = if (needsWater) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface

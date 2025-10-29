@@ -1,0 +1,40 @@
+Categories:
+  - Gardening
+  - Productivity
+License: MIT
+AuthorName: '@javisandomcoder'
+AuthorEmail: 'javisandomcoder@gmail.com'
+AuthorWebSite: ''
+SourceCode: https://github.com/Javisandomcoder/macetohuerto
+IssueTracker: https://github.com/Javisandomcoder/macetohuerto/issues
+Changelog: ''
+CurrentVersion: 1.0
+CurrentVersionCode: 10
+Name: Macetohuerto
+Summary: Urban plant care management app
+Description: |
+  Macetohuerto is a comprehensive Android app for managing and caring for your urban plants and small gardens.
+  
+  Features:
+  - Plant management with detailed information
+  - Advanced search and filtering system
+  - Smart watering system with reminders
+  - Photo gallery for each plant
+  - Care history tracking
+  - Home widget
+  - Seasonal watering schedules
+  - Fertilization and transplant tracking
+  
+  Perfect for urban gardeners who want to keep their plants healthy and thriving!
+
+AntiFeatures: []
+RepoType: git
+Repo: https://github.com/Javisandomcoder/macetohuerto.git
+Builds:
+  - versionName: 1.0
+    versionCode: 10
+    commit: v1.0
+    subdir: app
+    gradle:
+      - yes
+    prebuild: sed -i -e '/com.google.gms.google-services/d' build.gradle

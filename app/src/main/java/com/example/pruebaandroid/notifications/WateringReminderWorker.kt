@@ -11,6 +11,7 @@ import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.example.pruebaandroid.MainActivity
+import com.example.pruebaandroid.MacetappApplication
 import com.example.pruebaandroid.R
 import com.example.pruebaandroid.data.PlantDatabase
 import com.example.pruebaandroid.data.PlantRepository
@@ -27,11 +28,13 @@ class WateringReminderWorker(
         Log.d(TAG, "Current time: ${java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())}")
 
         val database = PlantDatabase.getDatabase(applicationContext)
-        val repository = PlantRepository(database.plantDao(), database.plantPhotoDao())
+        val repository = PlantRepository(database.plantDao(), database.plantPhotoDao(), database.careActivityDao())
 
         val currentDate = System.currentTimeMillis()
         val allPlants = repository.allPlants.first()
         val plantsNeedingWater = repository.getPlantsNeedingWater(currentDate).first()
+
+        val preferencesManager = com.example.pruebaandroid.data.PreferencesManager.getInstance(applicationContext)
 
         Log.d(TAG, "Total plants in database: ${allPlants.size}")
         Log.d(TAG, "Plants needing water: ${plantsNeedingWater.size}")

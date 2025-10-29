@@ -12,6 +12,8 @@ import androidx.core.app.NotificationCompat
 import com.example.pruebaandroid.MainActivity
 import com.example.pruebaandroid.data.PlantDatabase
 import com.example.pruebaandroid.data.PlantRepository
+import com.example.pruebaandroid.data.PreferencesManager
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -19,8 +21,16 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class WateringReminderReceiver : BroadcastReceiver() {
+
+    @Inject
+    lateinit var repository: PlantRepository
+    
+    @Inject
+    lateinit var preferencesManager: PreferencesManager
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -33,7 +43,15 @@ class WateringReminderReceiver : BroadcastReceiver() {
         // Handle device boot - reschedule alarms
         if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
             Log.d(TAG, "Device boot detected - rescheduling alarms")
-            AlarmScheduler.scheduleAlarmsForPlants(context)
+            val pendingResult = goAsync()
+            scope.launch {
+                try {
+                    val plants = repository.allPlants.first()
+                    AlarmScheduler.scheduleAlarmsForPlants(context, preferencesManager, plants)
+                } finally {
+                    pendingResult.finish()
+                }
+            }
             return
         }
 
@@ -52,8 +70,7 @@ class WateringReminderReceiver : BroadcastReceiver() {
                 if (hour != -1 && minute != -1) {
                     checkPlantsAndNotify(context, hour, minute, isWeekend)
                 } else {
-                    // Fallback to checking all plants
-                    checkPlantsAndNotify(context)
+                    Log.w(TAG, "Received an alarm intent with no schedule extras. This should not happen.")
                 }
             } finally {
                 pendingResult.finish()
@@ -63,9 +80,6 @@ class WateringReminderReceiver : BroadcastReceiver() {
 
     private suspend fun checkPlantsAndNotify(context: Context, hour: Int, minute: Int, isWeekend: Boolean) {
         try {
-            val database = PlantDatabase.getDatabase(context)
-            val repository = PlantRepository(database.plantDao(), database.plantPhotoDao())
-
             val currentDate = System.currentTimeMillis()
             val allPlants = repository.allPlants.first()
 
@@ -100,49 +114,10 @@ class WateringReminderReceiver : BroadcastReceiver() {
                 Log.d(TAG, "No plants with this schedule need watering - notification NOT sent")
             }
 
-        } catch (e: Exception) {
-            Log.e(TAG, "Error checking plants: ${e.message}", e)
-        }
-
-        Log.d(TAG, "WateringReminderReceiver completed")
-        Log.d(TAG, "========================================")
-    }
-
-    private suspend fun checkPlantsAndNotify(context: Context) {
-        try {
-            val database = PlantDatabase.getDatabase(context)
-            val repository = PlantRepository(database.plantDao(), database.plantPhotoDao())
-
-            val currentDate = System.currentTimeMillis()
-            val allPlants = repository.allPlants.first()
-            val plantsNeedingWater = repository.getPlantsNeedingWater(currentDate).first()
-
-            Log.d(TAG, "Total plants in database: ${allPlants.size}")
-            Log.d(TAG, "Plants needing water: ${plantsNeedingWater.size}")
-
-            // Log details of all plants
-            allPlants.forEachIndexed { index, plant ->
-                val nextWateringDate = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-                    .format(Date(plant.nextWateringDate))
-                val needsWater = plant.nextWateringDate <= currentDate
-                Log.d(TAG, "Plant ${index + 1}: ${plant.name}")
-                Log.d(TAG, "  - Next watering: $nextWateringDate")
-                Log.d(TAG, "  - Needs water: $needsWater")
-            }
-
-            if (plantsNeedingWater.isNotEmpty()) {
-                Log.d(TAG, "Creating notification channel and sending notification")
-                createNotificationChannel(context)
-                sendNotification(context, plantsNeedingWater.size)
-                Log.d(TAG, "Notification sent successfully")
-            } else {
-                Log.d(TAG, "No plants need watering - notification NOT sent")
-            }
-
-            // Reschedule for next day
-            AlarmScheduler.scheduleAlarm(context)
-            Log.d(TAG, "Alarm rescheduled for next day")
-
+            // Reschedule all alarms for the next appropriate time
+            val preferencesManager = PreferencesManager.getInstance(context)
+            AlarmScheduler.scheduleAlarmsForPlants(context, preferencesManager, allPlants)
+            Log.d(TAG, "All alarms rescheduled")
         } catch (e: Exception) {
             Log.e(TAG, "Error checking plants: ${e.message}", e)
         }

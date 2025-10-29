@@ -1,22 +1,83 @@
 package com.example.pruebaandroid.data
 
 import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.pruebaandroid.notifications.AlarmScheduler
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import java.util.Calendar
+import java.time.DayOfWeek
+import java.time.ZonedDateTime
+import javax.inject.Inject
 
-class PlantViewModel(application: Application) : AndroidViewModel(application) {
-    private val repository: PlantRepository
-    val allPlants: Flow<List<Plant>>
+@HiltViewModel
+class PlantViewModel @Inject constructor(
+    private val repository: PlantRepository,
+    private val application: Application,
+    val preferencesManager: PreferencesManager
+) : ViewModel() {
+
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    private val _sortBy = MutableStateFlow(SortBy.NEXT_WATERING)
+    val sortBy: StateFlow<SortBy> = _sortBy.asStateFlow()
+
+    private val _filterBy = MutableStateFlow<PlantFilter>(PlantFilter.ALL)
+    val filterBy: StateFlow<PlantFilter> = _filterBy.asStateFlow()
+
+    val allPlants: Flow<List<Plant>> = repository.allPlants
+
+    // Combined flow for filtered and sorted plants
+    val filteredAndSortedPlants = combine(
+        allPlants,
+        searchQuery,
+        sortBy,
+        filterBy
+    ) { plants, query, sort, filter ->
+        var filteredPlants = plants
+
+        // Apply search filter
+        if (query.isNotBlank()) {
+            filteredPlants = plants.filter { plant ->
+                plant.name.contains(query, ignoreCase = true) ||
+                plant.species.contains(query, ignoreCase = true) ||
+                plant.description.contains(query, ignoreCase = true) ||
+                plant.notes.contains(query, ignoreCase = true)
+            }
+        }
+
+        // Apply status filter
+        filteredPlants = when (filter) {
+            PlantFilter.ALL -> filteredPlants
+            PlantFilter.NEEDS_WATER -> {
+                val currentDate = System.currentTimeMillis()
+                filteredPlants.filter { it.nextWateringDate <= currentDate }
+            }
+            PlantFilter.DOES_NOT_NEED_WATER -> {
+                val currentDate = System.currentTimeMillis()
+                filteredPlants.filter { it.nextWateringDate > currentDate }
+            }
+        }
+
+        // Apply sorting
+        when (sort) {
+            SortBy.NAME -> filteredPlants.sortedBy { it.name.lowercase() }
+            SortBy.SPECIES -> filteredPlants.sortedBy { it.species.lowercase() }
+            SortBy.NEXT_WATERING -> filteredPlants.sortedBy { it.nextWateringDate }
+            SortBy.LAST_WATERED -> filteredPlants.sortedByDescending { it.lastWateredDate }
+        }
+    }
 
     init {
-        val database = PlantDatabase.getDatabase(application)
-        repository = PlantRepository(database.plantDao(), database.plantPhotoDao())
-        allPlants = repository.allPlants
+        viewModelScope.launch {
+            allPlants.collect { plants ->
+                AlarmScheduler.scheduleAlarmsForPlants(application, preferencesManager, plants)
+            }
+        }
     }
 
     fun getPlantsNeedingWater(): Flow<List<Plant>> {
@@ -34,26 +95,18 @@ class PlantViewModel(application: Application) : AndroidViewModel(application) {
 
     fun insertPlant(plant: Plant) = viewModelScope.launch {
         repository.insertPlant(plant)
-        // Reschedule alarms with new plant schedules
-        AlarmScheduler.scheduleAlarmsForPlants(getApplication())
     }
 
     fun updatePlant(plant: Plant) = viewModelScope.launch {
         repository.updatePlant(plant)
-        // Reschedule alarms with updated plant schedules
-        AlarmScheduler.scheduleAlarmsForPlants(getApplication())
     }
 
     fun deletePlant(plant: Plant) = viewModelScope.launch {
         repository.deletePlant(plant)
-        // Reschedule alarms after plant deletion
-        AlarmScheduler.scheduleAlarmsForPlants(getApplication())
     }
 
     fun deletePlantById(id: Int) = viewModelScope.launch {
         repository.deletePlantById(id)
-        // Reschedule alarms after plant deletion
-        AlarmScheduler.scheduleAlarmsForPlants(getApplication())
     }
 
     fun waterPlant(plant: Plant) = viewModelScope.launch(Dispatchers.IO) {
@@ -76,9 +129,7 @@ class PlantViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun calculateNextWateringDate(wateringFrequencyDays: Int): Long {
-        val calendar = Calendar.getInstance()
-        calendar.add(Calendar.DAY_OF_YEAR, wateringFrequencyDays)
-        return calendar.timeInMillis
+        return ZonedDateTime.now().plusDays(wateringFrequencyDays.toLong()).toInstant().toEpochMilli()
     }
 
     fun calculateNextWateringDateWithSchedule(
@@ -88,22 +139,17 @@ class PlantViewModel(application: Application) : AndroidViewModel(application) {
         weekendHour: Int,
         weekendMinute: Int
     ): Long {
-        val calendar = Calendar.getInstance()
-        calendar.add(Calendar.DAY_OF_YEAR, wateringFrequencyDays)
+        val nextDate = ZonedDateTime.now().plusDays(wateringFrequencyDays.toLong())
 
         // Check if the next watering date falls on a weekend
-        val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
-        val isWeekend = dayOfWeek == Calendar.SATURDAY || dayOfWeek == Calendar.SUNDAY
+        val dayOfWeek = nextDate.dayOfWeek
+        val isWeekend = dayOfWeek == DayOfWeek.SATURDAY || dayOfWeek == DayOfWeek.SUNDAY
 
         // Set the appropriate hour and minute based on the day type
         val hour = if (isWeekend) weekendHour else weekdayHour
         val minute = if (isWeekend) weekendMinute else weekdayMinute
-        calendar.set(Calendar.HOUR_OF_DAY, hour)
-        calendar.set(Calendar.MINUTE, minute)
-        calendar.set(Calendar.SECOND, 0)
-        calendar.set(Calendar.MILLISECOND, 0)
 
-        return calendar.timeInMillis
+        return nextDate.withHour(hour).withMinute(minute).withSecond(0).withNano(0).toInstant().toEpochMilli()
     }
 
     // Photo operations
@@ -130,4 +176,136 @@ class PlantViewModel(application: Application) : AndroidViewModel(application) {
     fun deletePhotoById(id: Int) = viewModelScope.launch {
         repository.deletePhotoById(id)
     }
+
+    // Care activity operations
+    fun getActivitiesForPlant(plantId: Int): Flow<List<CareActivity>> {
+        return repository.getActivitiesForPlant(plantId)
+    }
+
+    suspend fun getOverdueFertilizingActivities(): List<CareActivity> {
+        return repository.getOverdueActivities(CareType.FERTILIZING, System.currentTimeMillis())
+    }
+
+    suspend fun getOverdueTransplantActivities(): List<CareActivity> {
+        return repository.getOverdueActivities(CareType.TRANSPLANTING, System.currentTimeMillis())
+    }
+
+    fun getUpcomingFertilizingActivities(): Flow<List<CareActivity>> {
+        return repository.getUpcomingActivities(CareType.FERTILIZING, System.currentTimeMillis())
+    }
+
+    fun getUpcomingTransplantActivities(): Flow<List<CareActivity>> {
+        return repository.getUpcomingActivities(CareType.TRANSPLANTING, System.currentTimeMillis())
+    }
+
+    fun getActivitiesByDateRange(startDate: Long, endDate: Long): Flow<List<CareActivity>> {
+        return repository.getActivitiesByDateRange(startDate, endDate)
+    }
+
+    suspend fun getLastFertilizingActivity(plantId: Int): CareActivity? {
+        return repository.getLastActivity(plantId, CareType.FERTILIZING)
+    }
+
+    suspend fun getLastTransplantActivity(plantId: Int): CareActivity? {
+        return repository.getLastActivity(plantId, CareType.TRANSPLANTING)
+    }
+
+    fun fertilizePlant(plant: Plant) = viewModelScope.launch(Dispatchers.IO) {
+        val currentDate = System.currentTimeMillis()
+        
+        // Create care activity record
+        val activity = CareActivity(
+            plantId = plant.id,
+            activityType = CareType.FERTILIZING,
+            activityDate = currentDate,
+            notes = "Fertilizado con ${plant.fertilizerType}",
+            nextDueDate = if (plant.fertilizationFrequencyDays != null) {
+                currentDate + (plant.fertilizationFrequencyDays!! * 24 * 60 * 60 * 1000L)
+            } else null,
+            fertilizerType = plant.fertilizerType
+        )
+        
+        repository.insertActivity(activity)
+        
+        // Update plant record
+        val nextFertilizedDate = if (plant.fertilizationFrequencyDays != null) {
+            currentDate + (plant.fertilizationFrequencyDays!! * 24 * 60 * 60 * 1000L)
+        } else null
+        
+        val updatedPlant = plant.copy(
+            lastFertilizedDate = currentDate,
+            nextFertilizedDate = nextFertilizedDate
+        )
+        repository.updatePlant(updatedPlant)
+    }
+
+    fun transplantPlant(plant: Plant) = viewModelScope.launch(Dispatchers.IO) {
+        val currentDate = System.currentTimeMillis()
+        
+        // Create care activity record
+        val activity = CareActivity(
+            plantId = plant.id,
+            activityType = CareType.TRANSPLANTING,
+            activityDate = currentDate,
+            notes = "Trasplantada a maceta de ${plant.potSize}",
+            nextDueDate = if (plant.transplantFrequencyMonths != null) {
+                currentDate + (plant.transplantFrequencyMonths!! * 30L * 24 * 60 * 60 * 1000L)
+            } else null
+        )
+        
+        repository.insertActivity(activity)
+        
+        // Update plant record
+        val nextTransplantDate = if (plant.transplantFrequencyMonths != null) {
+            currentDate + (plant.transplantFrequencyMonths!! * 30L * 24 * 60 * 60 * 1000L)
+        } else null
+        
+        val updatedPlant = plant.copy(
+            lastTransplantedDate = currentDate,
+            nextTransplantDate = nextTransplantDate
+        )
+        repository.updatePlant(updatedPlant)
+    }
+
+    fun getSeasonalWateringFrequency(plant: Plant): Int {
+        if (!plant.useSeasonalSchedule) return plant.wateringFrequencyDays
+        
+        val currentMonth = java.time.LocalDate.now().monthValue
+        
+        return when {
+            currentMonth in plant.springStartMonth..(plant.fallStartMonth - 1) -> {
+                // Spring/Summer - use regular or summer frequency
+                plant.summerWateringFrequency ?: plant.wateringFrequencyDays
+            }
+            else -> {
+                // Fall/Winter - use winter frequency
+                plant.winterWateringFrequency ?: plant.wateringFrequencyDays
+            }
+        }
+    }
+
+    // Search and filter functions
+    fun updateSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
+    fun updateSortBy(sort: SortBy) {
+        _sortBy.value = sort
+    }
+
+    fun updateFilterBy(filter: PlantFilter) {
+        _filterBy.value = filter
+    }
+
+    fun insertActivity(activity: CareActivity) = viewModelScope.launch {
+        repository.insertActivity(activity)
+    }
+}
+
+enum class SortBy {
+    NAME, SPECIES, NEXT_WATERING, LAST_WATERED
+}
+
+enum class PlantFilter {
+    ALL, NEEDS_WATER, DOES_NOT_NEED_WATER
 }

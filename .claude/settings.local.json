@@ -20,7 +20,9 @@
       "Bash(source ~/.bashrc)",
       "Bash(java:*)",
       "Bash(.gradlew.bat assembleDebug)",
-      "Bash(powershell.exe:*)"
+      "Bash(powershell.exe:*)",
+      "Bash(cat:*)",
+      "Bash(cmd.exe /c \"cd /d C:\\Users\\javis\\AndroidStudioProjects\\PruebaAndroid && gradlew.bat assembleDebug 2>&1\")"
     ],
     "deny": [],
     "ask": []

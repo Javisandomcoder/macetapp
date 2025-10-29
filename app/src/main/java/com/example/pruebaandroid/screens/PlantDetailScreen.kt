@@ -8,7 +8,30 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ContentCut
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Eco
+import androidx.compose.material.icons.filled.HealthAndSafety
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Landscape
+import androidx.compose.material.icons.filled.Note
+import androidx.compose.material.icons.filled.Notes
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Spa
+import androidx.compose.material.icons.filled.WaterDamage
+import androidx.compose.material.icons.filled.WaterDrop
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.*
 import android.util.Log
 import androidx.compose.runtime.*
@@ -33,10 +56,13 @@ fun PlantDetailScreen(
     plantId: Int,
     onNavigateBack: () -> Unit,
     onNavigateToEdit: (Int) -> Unit,
-    onNavigateToGallery: (Int) -> Unit
+    onNavigateToGallery: (Int) -> Unit,
+    onNavigateToCareHistory: (Int, String) -> Unit,
+    onNavigateToAddActivity: (Int) -> Unit
 ) {
     val plantFromDb by viewModel.getPlantByIdFlow(plantId).collectAsState(initial = null)
     val photos by viewModel.getPhotosForPlant(plantId).collectAsState(initial = emptyList())
+    val recentActivities by viewModel.getActivitiesForPlant(plantId).collectAsState(initial = emptyList())
     val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
     val dateTimeFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
 
@@ -44,6 +70,8 @@ fun PlantDetailScreen(
     val scope = rememberCoroutineScope()
     var showWaterDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showFertilizeDialog by remember { mutableStateOf(false) }
+    var showTransplantDialog by remember { mutableStateOf(false) }
 
     val plant = plantFromDb
 
@@ -57,6 +85,9 @@ fun PlantDetailScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { onNavigateToCareHistory(plantId, plant?.name ?: "") }) {
+                        Icon(Icons.Default.History, contentDescription = "Historial de cuidado")
+                    }
                     IconButton(onClick = { onNavigateToEdit(plantId) }) {
                         Icon(Icons.Default.Edit, contentDescription = "Editar")
                     }
@@ -184,7 +215,7 @@ fun PlantDetailScreen(
                                     fontWeight = FontWeight.Bold
                                 )
                                 Icon(
-                                    Icons.Default.ArrowForward,
+                                    Icons.AutoMirrored.Filled.ArrowForward,
                                     contentDescription = "Ver todas",
                                     tint = MaterialTheme.colorScheme.primary
                                 )
@@ -233,7 +264,7 @@ fun PlantDetailScreen(
                                 )
                             }
                             Icon(
-                                Icons.Default.ArrowForward,
+                                Icons.AutoMirrored.Filled.ArrowForward,
                                 contentDescription = "Ir a galería",
                                 tint = MaterialTheme.colorScheme.primary
                             )
@@ -267,6 +298,191 @@ fun PlantDetailScreen(
                                 label = "Descripción",
                                 value = currentPlant.description
                             )
+                        }
+                    }
+                }
+
+                // Advanced Care Actions Card
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = "Acciones de Cuidado",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        // Fertilize Button
+                        Button(
+                            onClick = { showFertilizeDialog = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.secondary
+                            )
+                        ) {
+                            Icon(
+                                Icons.Default.Eco,
+                                contentDescription = "Fertilizar",
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Fertilizar")
+                        }
+
+                        // Transplant Button
+                        Button(
+                            onClick = { showTransplantDialog = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.tertiary
+                            )
+                        ) {
+                            Icon(
+                                Icons.Default.Landscape,
+                                contentDescription = "Trasplantar",
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Trasplantar")
+                        }
+
+                        // Add Activity Button
+                        OutlinedButton(
+                            onClick = { onNavigateToAddActivity(plantId) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = "Agregar actividad",
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Otra Actividad")
+                        }
+                    }
+                }
+
+                // Fertilization Info
+                if (currentPlant.lastFertilizedDate != null) {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.Eco,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.secondary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Fertilización",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            
+                            Text(
+                                text = "Última: ${dateFormat.format(Date(currentPlant.lastFertilizedDate))}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            
+                            currentPlant.nextFertilizedDate?.let { nextDate ->
+                                Text(
+                                    text = "Próxima: ${dateFormat.format(Date(nextDate))}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.secondary
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Transplant Info
+                if (currentPlant.lastTransplantedDate != null) {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.Landscape,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.tertiary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Trasplante",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            
+                            Text(
+                                text = "Último: ${dateFormat.format(Date(currentPlant.lastTransplantedDate))}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            
+                            currentPlant.nextTransplantDate?.let { nextDate ->
+                                Text(
+                                    text = "Próximo: ${dateFormat.format(Date(nextDate))}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.tertiary
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Recent Activities
+                if (recentActivities.take(3).isNotEmpty()) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onNavigateToCareHistory(plantId, currentPlant.name) }
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Actividades Recientes",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowForward,
+                                    contentDescription = "Ver todas",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            recentActivities.take(3).forEach { activity ->
+                                ActivitySummaryRow(activity = activity)
+                                Spacer(modifier = Modifier.height(4.dp))
+                            }
                         }
                     }
                 }
@@ -509,6 +725,74 @@ fun PlantDetailScreen(
             }
         )
     }
+
+    // Fertilize confirmation dialog
+    if (showFertilizeDialog) {
+        AlertDialog(
+            onDismissRequest = { showFertilizeDialog = false },
+            icon = { Icon(Icons.Default.Eco, contentDescription = "Fertilizar", tint = MaterialTheme.colorScheme.secondary) },
+            title = { Text("Confirmar fertilización") },
+            text = { Text("¿Deseas registrar que has fertilizado '${plant?.name}'?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        plant?.let { currentPlant ->
+                            viewModel.fertilizePlant(currentPlant)
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    message = "✓ ${currentPlant.name} ha sido fertilizada",
+                                    duration = SnackbarDuration.Short
+                                )
+                            }
+                        }
+                        showFertilizeDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                ) {
+                    Text("Fertilizar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showFertilizeDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
+    // Transplant confirmation dialog
+    if (showTransplantDialog) {
+        AlertDialog(
+            onDismissRequest = { showTransplantDialog = false },
+            icon = { Icon(Icons.Default.Landscape, contentDescription = "Trasplantar", tint = MaterialTheme.colorScheme.tertiary) },
+            title = { Text("Confirmar trasplante") },
+            text = { Text("¿Deseas registrar que has trasplantado '${plant?.name}'?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        plant?.let { currentPlant ->
+                            viewModel.transplantPlant(currentPlant)
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    message = "✓ ${currentPlant.name} ha sido trasplantada",
+                                    duration = SnackbarDuration.Short
+                                )
+                            }
+                        }
+                        showTransplantDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
+                ) {
+                    Text("Trasplantar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTransplantDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -538,5 +822,59 @@ fun DetailRow(
                 style = MaterialTheme.typography.bodyLarge
             )
         }
+    }
+}
+
+@Composable
+fun ActivitySummaryRow(activity: com.example.pruebaandroid.data.CareActivity) {
+    val activityIcon = when (activity.activityType) {
+        com.example.pruebaandroid.data.CareType.WATERING -> Icons.Default.WaterDrop
+        com.example.pruebaandroid.data.CareType.FERTILIZING -> Icons.Default.Eco
+        com.example.pruebaandroid.data.CareType.TRANSPLANTING -> Icons.Default.Landscape
+        com.example.pruebaandroid.data.CareType.PRUNING -> Icons.Default.ContentCut
+        com.example.pruebaandroid.data.CareType.PEST_TREATMENT -> Icons.Default.BugReport
+        com.example.pruebaandroid.data.CareType.DISEASE_TREATMENT -> Icons.Default.HealthAndSafety
+        com.example.pruebaandroid.data.CareType.REPOTTING -> Icons.Default.Landscape
+        com.example.pruebaandroid.data.CareType.MISTING -> Icons.Default.WaterDamage
+        com.example.pruebaandroid.data.CareType.OTHER -> Icons.Default.Note
+    }
+
+    val activityTypeName = when (activity.activityType) {
+        com.example.pruebaandroid.data.CareType.WATERING -> "Riego"
+        com.example.pruebaandroid.data.CareType.FERTILIZING -> "Fertilización"
+        com.example.pruebaandroid.data.CareType.TRANSPLANTING -> "Trasplante"
+        com.example.pruebaandroid.data.CareType.PRUNING -> "Poda"
+        com.example.pruebaandroid.data.CareType.PEST_TREATMENT -> "Tratamiento de Plagas"
+        com.example.pruebaandroid.data.CareType.DISEASE_TREATMENT -> "Tratamiento de Enfermedad"
+        com.example.pruebaandroid.data.CareType.REPOTTING -> "Repotting"
+        com.example.pruebaandroid.data.CareType.MISTING -> "Rociado"
+        com.example.pruebaandroid.data.CareType.OTHER -> "Otro"
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                activityIcon,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = activityTypeName,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+        
+        val dateFormat = SimpleDateFormat("dd/MM", Locale.getDefault())
+        Text(
+            text = dateFormat.format(Date(activity.activityDate)),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }

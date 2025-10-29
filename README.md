@@ -17,16 +17,55 @@ Macetohuerto es una aplicación móvil para Android que ayuda a los usuarios a g
   - Necesidades de luz (Sol Completo, Sol Parcial, Sombra)
   - Notas adicionales
 
-- **Lista de plantas** ordenada por próxima fecha de riego
+- **Lista de plantas** con búsqueda y filtros avanzados
+- **Búsqueda instantánea** por nombre, especie, descripción o notas
+- **Filtros inteligentes**:
+  - Todas las plantas
+  - Plantas que necesitan riego
+  - Plantas que no necesitan riego
+- **Ordenamiento múltiple**:
+  - Por nombre (A-Z)
+  - Por especie (A-Z)
+  - Por próximo riego (más urgente primero)
+  - Por último riego (más reciente primero)
 - **Edición de plantas** existentes
 - **Eliminación de plantas**
-- **Vista detallada** de cada planta
+- **Vista detallada** de cada planta con todas las acciones de cuidado
+
+### 🌿 Cuidado Avanzado
+- 🆕 **Seguimiento de fertilización**:
+  - Registro automático de cada fertilización
+  - Tipos de fertilizantes (líquido, granulado, orgánico, químico)
+  - Frecuencia configurable
+  - Fechas de última y próxima fertilización
+  - Notificaciones automáticas para próximas fertilizaciones
+
+- 🆕 **Control de trasplantes**:
+  - Registro de fechas de trasplante
+  - Configuración de frecuencia en meses
+  - Seguimiento de tamaño de maceta
+  - Indicadores de cuándo es necesario el próximo trasplante
+
+- 🆕 **Historial completo de cuidado**:
+  - Registro de todas las actividades por planta
+  - Tipos de actividad: riego, fertilización, trasplante, poda, tratamientos, etc.
+  - Fotos antes y después para tratamientos
+  - Notas y observaciones para cada actividad
+  - Filtrado por rango de fechas
+
+- 🆕 **Gestión múltiple de actividades**:
+  - Botones rápidos para fertilización y trasplante
+  - Agregado de actividades personalizadas
+  - Configuración de frecuencia y recordatorios
+  - Evaluación de efectividad de tratamientos
 
 ### 💧 Sistema de Riego
 - **Seguimiento de riego** con fechas de último riego y próximo riego
 - **Indicador visual** cuando una planta necesita ser regada (tarjeta roja)
 - **Función de riego rápido** desde la lista con botón de gota de agua
 - **Cálculo automático** de próxima fecha de riego
+- 🆕 **Frecuencia estacional**: ajuste automático de frecuencia según la estación
+- 🆕 **Horarios diferenciados**: configuración separada para días de semana y fines de semana
 
 ### 🔔 Notificaciones
 - **Recordatorios diarios** usando WorkManager
@@ -44,12 +83,24 @@ Macetohuerto es una aplicación móvil para Android que ayuda a los usuarios a g
 - **Almacenamiento local** seguro de imágenes
 - **Eliminación de fotos** individuales
 
+### 🏠 Widget de Home Screen
+- 🆕 **Acceso rápido**: Widget en pantalla principal para ver estado de plantas
+- 🆕 **Contador de riego**: Muestra cuántas plantas necesitan agua
+- 🆕 **Visualización de estado**: Indicadores claros con emojis y colores
+- 🆕 **Clic para abrir**: Tocar el widget abre la aplicación principal
+- 🆕 **Actualización automática**: Se actualiza cada 30 minutos
+- 🆕 **Diseño simple**: Interfaz limpia y fácil de leer
+- 🆕 **Iconos vegetales**: Uso de íconos relacionados con plantas
+
 ### 💾 Persistencia de Datos
 - **Base de datos Room** para almacenamiento local robusto
 - **Flow de datos reactivo** para actualizaciones en tiempo real
 - **Patrón Repository** para separación de capas
 - **SharedPreferences** para configuraciones de usuario
 - **Almacenamiento de fotos** en directorio privado de la app
+- 🆕 **Sistema de actividades de cuidado**: tabla dedicada para tracking completo
+- 🆕 **Relaciones complejas**: plantas → actividades → fotos
+- 🆕 **Migración de base de datos**: versión actualizada con nuevo esquema
 
 ## Arquitectura
 
@@ -131,17 +182,25 @@ app/src/main/java/com/example/pruebaandroid/
 
 - ✅ Añadir soporte para fotos de plantas (Álbum completo con cámara y galería)
 - ✅ Configuración de hora de notificaciones
+- ✅ **Búsqueda y filtros avanzados con múltiples opciones de ordenamiento**
+- ✅ **Sistema completo de cuidado avanzado** (fertilización, trasplantes, historial)
+- ✅ **Gestión estacional de frecuencias de riego**
+- ✅ **Horarios diferenciados para días de semana y fines de semana**
+- ✅ **Registro completo de actividades de cuidado con estadísticas**
 
 ## Próximas Mejoras Planeadas
 
-- [ ] Gráficos de crecimiento y seguimiento
-- [ ] Recordatorios adicionales (fertilización, trasplante)
-- [ ] Integración con sensores ESP32 (humedad, temperatura, luz)
-- [ ] Widget de home screen
-- [ ] Modo oscuro personalizado
-- [ ] Exportación/importación de datos (JSON/CSV)
-- [ ] Búsqueda y filtros de plantas
-- [ ] Estadísticas de cuidado
+- [ ] 📊 Estadísticas y gráficos de crecimiento y salud de las plantas
+- [ ] 🌡️ Integración con sensores ESP32 (humedad, temperatura, luz)
+- [ ] 🌙 Modo oscuro personalizado
+- [ ] 💾 Exportación/importación de datos (JSON/CSV)
+- [ ] 🏅 Widget de home screen mejorado con más información
+- [ ] 🏥 Modo experto con datos avanzados (pH, EC, etc.)
+- [ ] 🤖 Identificación de plantas mediante IA
+- [ ] 👥 Modo multiusuario familiar
+- [ ] 🌿 Recomendaciones de cuidado basadas en especies
+- [ ] 📅 Calendario de tareas de jardinería
+- [ ] 🎯 Metas y logros de cuidado
 
 ## Autor
 
@@ -150,3 +209,35 @@ Desarrollado basado en el proyecto original Flutter: [macetohuerto](https://gith
 ## Licencia
 
 Este proyecto mantiene la licencia MIT del proyecto original.
+
+## F-Droid Submission
+
+Este proyecto está preparado para ser enviado a F-Droid:
+
+### ✅ Requisitos Cumplidos
+- **Licencia MIT**: Software Libre y de Código Abierto
+- **Dependencias 100% FOSS**: Sin componentes "Non-Free"
+- **Metadata completa**: Estructura fastlane/metadata configurada
+- **Build reproducible**: Configuración para builds consistentes
+- **Sin SDKs privativos**: Sin Google Play Services ni Firebase
+
+### 📋 Estructura F-Droid
+```
+fastlane/
+├── metadata/
+│   ├── android.txt              - Configuración F-Droid
+│   └── en-US/
+│       ├── title.txt            - Título de la app
+│       ├── short_description.txt - Descripción corta
+│       ├── full_description.txt  - Descripción completa
+│       ├── icon.png             - Icono de la app
+│       └── phoneScreenshots/     - Screenshots (pendiente)
+```
+
+### 🚀 Para enviar a F-Droid
+1. **Añadir screenshots** en `fastlane/metadata/en-US/phoneScreenshots/`
+2. **Crear fork** del repo `fdroiddata`
+3. **Añadir metadata** al repo de F-Droid
+4. **Abrir Pull Request** para revisión
+
+Más información: [F-Droid Inclusion Procedure](https://f-droid.org/docs/Inclusion_Policy/)

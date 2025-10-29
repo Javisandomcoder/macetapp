@@ -1,0 +1,47 @@
+Macetohuerto is a comprehensive Android app for managing and caring for your urban plants and small gardens. 
+
+🌱 **Plant Management**
+• Register plants with detailed information (name, species, watering frequency, light needs)
+• Advanced search and filtering system
+• Sort by name, species, next watering, or last watering
+• View detailed plant information with care actions
+
+🌿 **Advanced Care System**
+• Fertilization tracking with types and frequency
+• Transplant control with pot size monitoring
+• Complete care history with photos and notes
+• Multiple activity management with custom actions
+• Seasonal watering frequency adjustment
+• Different weekday/weekend watering schedules
+
+💧 **Smart Watering**
+• Automatic next watering date calculation
+• Visual indicators when plants need water
+• Quick watering buttons from main list
+• Seasonal frequency adjustments
+
+📸 **Photo Gallery**
+• Individual photo gallery for each plant
+• Capture photos with integrated camera
+• Select from device gallery
+• Optional descriptions for photos
+
+🔔 **Smart Notifications**
+• Daily reminders using WorkManager
+• Shows how many plants need watering
+• Android 13+ notification permissions support
+• Customizable notification time
+
+🏠 **Home Widget**
+• Quick access widget for home screen
+• Shows watering needs counter
+• Auto-updates every 30 minutes
+• Clean design with plant emojis
+
+💾 **Robust Data Storage**
+• Room database for local storage
+• Reactive data flows with real-time updates
+• Repository pattern architecture
+• Private app storage for photos
+
+Perfect for urban gardeners who want to keep their plants healthy and thriving!
