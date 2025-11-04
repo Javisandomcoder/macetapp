@@ -38,6 +38,9 @@ data class AddCareActivity(val plantId: Int, val plantName: String)
 @Serializable
 object Settings
 
+@Serializable
+object PlantIdentification
+
 @Composable
 fun NavGraph(
     navController: NavHostController
@@ -58,6 +61,9 @@ fun NavGraph(
                 },
                 onNavigateToSettings = {
                     navController.navigate(Settings)
+                },
+                onNavigateToPlantIdentification = {
+                    navController.navigate(PlantIdentification)
                 }
             )
         }
@@ -156,6 +162,18 @@ fun NavGraph(
                 plantName = args.plantName,
                 viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable<PlantIdentification> {
+            val viewModel: PlantViewModel = hiltViewModel()
+            PlantIdentificationScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToAddPlant = { result ->
+                    viewModel.addIdentifiedPlantToCollection(result)
+                    navController.popBackStack()
+                }
             )
         }
     }

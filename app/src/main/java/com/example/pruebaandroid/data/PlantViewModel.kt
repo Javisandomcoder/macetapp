@@ -1,8 +1,11 @@
 package com.example.pruebaandroid.data
 
 import android.app.Application
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.pruebaandroid.ai.PlantIdentificationService
+import com.example.pruebaandroid.data.models.IdentificationState
 import com.example.pruebaandroid.notifications.AlarmScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -17,7 +20,8 @@ import javax.inject.Inject
 class PlantViewModel @Inject constructor(
     private val repository: PlantRepository,
     private val application: Application,
-    val preferencesManager: PreferencesManager
+    val preferencesManager: PreferencesManager,
+    private val plantIdentificationService: PlantIdentificationService
 ) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
@@ -28,6 +32,9 @@ class PlantViewModel @Inject constructor(
 
     private val _filterBy = MutableStateFlow<PlantFilter>(PlantFilter.ALL)
     val filterBy: StateFlow<PlantFilter> = _filterBy.asStateFlow()
+
+    private val _identificationState = MutableStateFlow(IdentificationState())
+    val identificationState: StateFlow<IdentificationState> = _identificationState.asStateFlow()
 
     val allPlants: Flow<List<Plant>> = repository.allPlants
 
@@ -299,6 +306,59 @@ class PlantViewModel @Inject constructor(
 
     fun insertActivity(activity: CareActivity) = viewModelScope.launch {
         repository.insertActivity(activity)
+    }
+
+    // Plant identification functions
+    fun identifyPlantFromUri(imageUri: Uri) = viewModelScope.launch {
+        _identificationState.value = IdentificationState(isLoading = true)
+        
+        plantIdentificationService.identifyPlantFromUri(imageUri)
+            .onSuccess { result ->
+                _identificationState.value = IdentificationState(
+                    isLoading = false,
+                    result = result
+                )
+            }
+            .onFailure { exception ->
+                _identificationState.value = IdentificationState(
+                    isLoading = false,
+                    error = exception.message ?: "Error al identificar la planta"
+                )
+            }
+    }
+
+    fun clearIdentificationState() {
+        _identificationState.value = IdentificationState()
+    }
+
+    fun addIdentifiedPlantToCollection(result: com.example.pruebaandroid.data.models.PlantIdentificationResult) = viewModelScope.launch {
+        val newPlant = Plant(
+            name = result.plantName,
+            species = result.scientificName ?: "Desconocida",
+            description = result.description ?: "",
+            wateringFrequencyDays = 7, // Valor por defecto
+            lastWateredDate = System.currentTimeMillis(),
+            nextWateringDate = calculateNextWateringDate(7),
+            sunlightNeeds = "Partial Sun", // Valor por defecto
+            notes = "Identificado con IA: ${result.description}",
+            weekdayWateringHour = 8,
+            weekdayWateringMinute = 0,
+            weekendWateringHour = 9,
+            weekendWateringMinute = 0,
+            useSeasonalSchedule = false,
+            springStartMonth = 3,
+            fallStartMonth = 9,
+            fertilizerType = "",
+            fertilizationFrequencyDays = null,
+            transplantFrequencyMonths = null,
+            potSize = "Mediana",
+            soilType = "Universal",
+            humidityLevel = "",
+            temperatureRange = "",
+            difficultyLevel = "Beginner"
+        )
+        
+        insertPlant(newPlant)
     }
 }
 

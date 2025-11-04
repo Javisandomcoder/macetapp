@@ -66,6 +66,9 @@ dependencies {
     // Kotlinx Serialization
     implementation(libs.kotlinx.serialization.json)
 
+    // Gemini AI
+    implementation(libs.gemini.generativeai)
+
     // ViewModel
     implementation(libs.androidx.lifecycle.viewmodel.compose)
 

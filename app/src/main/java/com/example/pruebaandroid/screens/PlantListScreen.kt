@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.WaterDrop
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -44,7 +45,8 @@ fun PlantListScreen(
     viewModel: PlantViewModel,
     onNavigateToAddPlant: () -> Unit,
     onNavigateToPlantDetail: (Int) -> Unit,
-    onNavigateToSettings: () -> Unit
+    onNavigateToSettings: () -> Unit,
+    onNavigateToPlantIdentification: () -> Unit
 ) {
     val plants by viewModel.filteredAndSortedPlants.collectAsStateWithLifecycle(initialValue = emptyList())
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
@@ -74,6 +76,9 @@ fun PlantListScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onNavigateToPlantIdentification) {
+                        Icon(Icons.Default.CameraAlt, contentDescription = "Identificar planta")
+                    }
                     IconButton(onClick = { showFilterDialog = true }) {
                         Icon(Icons.Default.FilterList, contentDescription = "Filtrar")
                     }
