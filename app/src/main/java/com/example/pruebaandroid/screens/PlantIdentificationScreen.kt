@@ -34,15 +34,19 @@ import java.util.*
 fun PlantIdentificationScreen(
     viewModel: PlantViewModel,
     onNavigateBack: () -> Unit,
-    onNavigateToAddPlant: (com.example.pruebaandroid.data.models.PlantIdentificationResult) -> Unit
+    onNavigateToAddPlant: (com.example.pruebaandroid.data.models.PlantIdentificationResult) -> Unit,
+    onNavigateToApiKeySetup: () -> Unit
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     var showPermissionDialog by remember { mutableStateOf(false) }
+    var showApiKeyDialog by remember { mutableStateOf(false) }
     
     val identificationState by viewModel.identificationState.collectAsState()
+    val geminiApiKey by viewModel.preferencesManager.geminiApiKey.collectAsState(initial = null)
+    val hasApiKey = !geminiApiKey.isNullOrBlank()
     
     val cameraImageUri = remember {
         createImageFile(context)?.let { file ->
@@ -140,10 +144,24 @@ fun PlantIdentificationScreen(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "Toma una foto o selecciona una imagen",
+                                text = if (hasApiKey == null || hasApiKey == false) {
+                                    "Configura tu clave API de Gemini para empezar"
+                                } else {
+                                    "Toma una foto o selecciona una imagen"
+                                },
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            if (hasApiKey == null || hasApiKey == false) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Button(
+                                    onClick = onNavigateToApiKeySetup
+                                ) {
+                                    Icon(Icons.Default.Settings, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Configurar Clave API")
+                                }
+                            }
                         }
                     }
                 }
@@ -159,10 +177,18 @@ fun PlantIdentificationScreen(
                                     context,
                                     Manifest.permission.CAMERA
                                 ) -> {
-                                    cameraImageUri?.let { cameraLauncher.launch(it) }
+                                    if (hasApiKey == null || hasApiKey == false) {
+                                        showApiKeyDialog = true
+                                    } else {
+                                        cameraImageUri?.let { cameraLauncher.launch(it) }
+                                    }
                                 }
                                 else -> {
-                                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                                    if (hasApiKey == null || hasApiKey == false) {
+                                        showApiKeyDialog = true
+                                    } else {
+                                        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                                    }
                                 }
                             }
                         },
@@ -174,7 +200,13 @@ fun PlantIdentificationScreen(
                     }
                     
                     OutlinedButton(
-                        onClick = { galleryLauncher.launch("image/*") },
+                        onClick = { 
+                            if (hasApiKey == null || hasApiKey == false) {
+                                showApiKeyDialog = true
+                            } else {
+                                galleryLauncher.launch("image/*")
+                            }
+                        },
                         modifier = Modifier.weight(1f)
                     ) {
                         Icon(Icons.Default.Image, contentDescription = null)
@@ -364,6 +396,30 @@ fun PlantIdentificationScreen(
                 }
             }
         }
+    }
+    
+    // API Key dialog
+    if (showApiKeyDialog) {
+        AlertDialog(
+            onDismissRequest = { showApiKeyDialog = false },
+            title = { Text("Clave API requerida") },
+            text = { Text("Para usar la función de identificación de plantas, necesitas configurar tu clave API de Gemini en la configuración.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showApiKeyDialog = false
+                        onNavigateToApiKeySetup()
+                    }
+                ) {
+                    Text("Configurar ahora")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showApiKeyDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
     
     // Permission dialog

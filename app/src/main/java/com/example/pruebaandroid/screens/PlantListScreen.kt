@@ -6,7 +6,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.gestures.ScrollableDefaults
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -27,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.pruebaandroid.data.Plant
@@ -52,13 +55,20 @@ fun PlantListScreen(
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val sortBy by viewModel.sortBy.collectAsStateWithLifecycle()
     val filterBy by viewModel.filterBy.collectAsStateWithLifecycle()
-    val plantsNeedingWater = plants.count { it.nextWateringDate <= System.currentTimeMillis() }
+
+    // Optimize expensive calculation with remember
+    val plantsNeedingWater = remember(plants) {
+        plants.count { it.nextWateringDate <= System.currentTimeMillis() }
+    }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    
+
     var showFilterDialog by remember { mutableStateOf(false) }
     var showSortDialog by remember { mutableStateOf(false) }
+
+    // Add optimized LazyListState for smooth scrolling
+    val listState = rememberLazyListState()
 
     Scaffold(
         topBar = {
@@ -179,16 +189,23 @@ fun PlantListScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .weight(1f),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    state = listState,
+                    contentPadding = PaddingValues(
+                        horizontal = 16.dp,
+                        vertical = 8.dp
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    flingBehavior = ScrollableDefaults.flingBehavior()
                 ) {
-                    itemsIndexed(
-                        items = plants,
-                        key = { _, plant -> plant.id }
-                    ) { index, plant ->
-                        AnimatedPlantCard(
+                    items(
+                        count = plants.size,
+                        key = { index -> plants[index].id },
+                        contentType = { _ -> "plant" }
+                    ) { index ->
+                        // Access plant by index for better performance
+                        val plant = plants[index]
+                        PlantCard(
                             plant = plant,
-                            index = index,
                             onPlantClick = { onNavigateToPlantDetail(plant.id) },
                             onWaterClick = {
                                 viewModel.waterPlant(plant)
@@ -231,39 +248,6 @@ fun PlantListScreen(
     }
 }
 
-@Composable
-fun AnimatedPlantCard(
-    plant: Plant,
-    index: Int,
-    onPlantClick: () -> Unit,
-    onWaterClick: () -> Unit,
-    onDeleteClick: () -> Unit
-) {
-    // Entrada animada con delay escalonado
-    var visible by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(index * 50L)
-        visible = true
-    }
-
-    AnimatedVisibility(
-        visible = visible,
-        enter = fadeIn(
-            animationSpec = tween(300)
-        ) + slideInVertically(
-            animationSpec = tween(300),
-            initialOffsetY = { it / 4 }
-        )
-    ) {
-        PlantCard(
-            plant = plant,
-            onPlantClick = onPlantClick,
-            onWaterClick = onWaterClick,
-            onDeleteClick = onDeleteClick
-        )
-    }
-}
 
 @Composable
 fun FilterDialog(
@@ -359,37 +343,28 @@ fun PlantCard(
     onWaterClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
-    val formatter = remember { DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale.getDefault()) }
-    val needsWater = plant.nextWateringDate <= System.currentTimeMillis()
+    // Ultimate performance optimization - minimal state
+    val needsWater = remember(plant.nextWateringDate) {
+        plant.nextWateringDate <= System.currentTimeMillis()
+    }
     var showDeleteDialog by remember { mutableStateOf(false) }
 
-    // Animación de color suave
-    val containerColor by animateColorAsState(
-        targetValue = if (needsWater)
-            MaterialTheme.colorScheme.errorContainer
-        else
-            MaterialTheme.colorScheme.surfaceVariant,
-        animationSpec = tween(durationMillis = 600),
-        label = "containerColor"
-    )
-
-    // Animación de escala al hacer click
-    var isPressed by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.97f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = "scale"
-    )
-
-    LaunchedEffect(isPressed) {
-        if (isPressed) {
-            kotlinx.coroutines.delay(100)
-            isPressed = false
-        }
+    // Pre-calculate formatted dates with minimal overhead
+    val formattedInfo = remember(plant.lastWateredDate, plant.nextWateringDate) {
+        val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale.getDefault())
+        val lastWatered = Instant.ofEpochMilli(plant.lastWateredDate)
+            .atZone(ZoneId.systemDefault())
+            .toLocalDate()
+            .format(formatter)
+        val nextWatered = Instant.ofEpochMilli(plant.nextWateringDate)
+            .atZone(ZoneId.systemDefault())
+            .toLocalDate()
+            .format(formatter)
+        Pair(lastWatered, nextWatered)
     }
+
+    // Simplified for better performance - removed complex animation
+    // keeping only essential functionality
 
     if (showDeleteDialog) {
         AlertDialog(
@@ -414,16 +389,18 @@ fun PlantCard(
         )
     }
 
+    // Cache container color calculation - will be computed inline
+    // since MaterialTheme is only available in composable context
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .scale(scale)
-            .clickable {
-                isPressed = true
-                onPlantClick()
-            },
+            .clickable { onPlantClick() },
         colors = CardDefaults.cardColors(
-            containerColor = containerColor
+            containerColor = if (needsWater)
+                MaterialTheme.colorScheme.errorContainer
+            else
+                MaterialTheme.colorScheme.surfaceVariant
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
@@ -441,12 +418,16 @@ fun PlantCard(
                     Text(
                         text = plant.name,
                         style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         text = plant.species,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
 
@@ -491,7 +472,7 @@ Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         style = MaterialTheme.typography.bodySmall
                     )
                     Text(
-                        text = Instant.ofEpochMilli(plant.lastWateredDate).atZone(ZoneId.systemDefault()).toLocalDate().format(formatter),
+                        text = formattedInfo.first,
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -504,7 +485,7 @@ Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         color = if (needsWater) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = Instant.ofEpochMilli(plant.nextWateringDate).atZone(ZoneId.systemDefault()).toLocalDate().format(formatter),
+                        text = formattedInfo.second,
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = if (needsWater) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
@@ -540,7 +521,9 @@ Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 text = "Frecuencia: cada ${plant.wateringFrequencyDays} días | Luz: ${plant.sunlightNeeds}",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }

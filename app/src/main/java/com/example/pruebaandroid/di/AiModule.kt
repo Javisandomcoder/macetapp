@@ -16,8 +16,11 @@ object AiModule {
     @Provides
     @Singleton
     fun providePlantIdentificationService(
-        @ApplicationContext context: Context
+        @ApplicationContext context: Context,
+        preferencesManager: com.example.pruebaandroid.data.PreferencesManager
     ): PlantIdentificationService {
-        return PlantIdentificationService(context)
+        return PlantIdentificationService(context) {
+            preferencesManager.geminiApiKey.value
+        }
     }
 }

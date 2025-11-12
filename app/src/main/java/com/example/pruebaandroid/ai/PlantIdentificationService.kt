@@ -13,25 +13,63 @@ import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.net.URL
 
-class PlantIdentificationService(private val context: Context) {
+class PlantIdentificationService(
+    private val context: Context,
+    private val getApiKey: () -> String?
+) {
     
-    private val generativeModel = GenerativeModel(
-        modelName = "gemini-1.5-flash",
-        apiKey = "AIzaSyDkXy4N7V8U9wZ2qR5sT6vY7u8i9o0p1q" // Nota: En producción, esto debería estar en un lugar seguro
-    )
+    private fun getGenerativeModel(): GenerativeModel? {
+        val apiKey = getApiKey() ?: return null
+        return GenerativeModel(
+            modelName = "gemini-2.5-flash",
+            apiKey = apiKey
+        )
+    }
+    
+    suspend fun testApiKey(apiKey: String): Result<Boolean> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val testModel = GenerativeModel(
+                    modelName = "gemini-2.5-flash",
+                    apiKey = apiKey
+                )
+                
+                val testPrompt = "Responde solo con 'OK' si puedes recibir este mensaje."
+                val response = testModel.generateContent(testPrompt)
+                val result = response.text == "OK"
+                Result.success(result)
+            } catch (e: Exception) {
+                val errorMessage = when {
+                    e.message?.contains("403") == true || e.message?.contains("401") == true ->
+                        "Clave API inválida o expirada."
+                    e.message?.contains("404") == true ->
+                        "Modelo gemini-2.5-flash no disponible para esta clave API."
+                    e.message?.contains("quota") == true ->
+                        "Cuota de API excedida. Intenta más tarde."
+                    e.message?.contains("network") == true || e.message?.contains("connection") == true ->
+                        "Error de conexión. Verifica tu internet."
+                    else -> "Error al validar clave API: ${e.message}"
+                }
+                Result.failure(Exception(errorMessage))
+            }
+        }
+    }
     
     suspend fun identifyPlantFromUri(imageUri: Uri): Result<PlantIdentificationResult> {
         return try {
             val bitmap = uriToBitmap(imageUri) ?: return Result.failure(IOException("No se pudo cargar la imagen"))
             identifyPlantFromBitmap(bitmap)
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(Exception("No se pudo procesar la imagen: ${e.message}"))
         }
     }
     
     suspend fun identifyPlantFromBitmap(bitmap: Bitmap): Result<PlantIdentificationResult> {
         return withContext(Dispatchers.IO) {
             try {
+                val generativeModel = getGenerativeModel() 
+                    ?: return@withContext Result.failure(Exception("No hay una clave API de Gemini configurada"))
+                
                 val prompt = """
                     Analiza esta imagen e identifica qué planta es. Proporciona la siguiente información:
                     
@@ -71,15 +109,35 @@ class PlantIdentificationService(private val context: Context) {
                     text(prompt)
                 }
                 
-                val response = generativeModel.generateContent(inputContent)
-                val responseText = response.text ?: return@withContext Result.failure(Exception("No se obtuvo respuesta de Gemini"))
+                val response = try {
+                    generativeModel.generateContent(inputContent)
+                } catch (e: Exception) {
+                    return@withContext Result.failure(
+                        Exception("Error de API de Gemini: ${e.message ?: "Error desconocido"}")
+                    )
+                }
+                
+                val responseText = response.text ?: return@withContext Result.failure(
+                    Exception("No se obtuvo respuesta válida de Gemini. Verifica tu clave API.")
+                )
                 
                 // Parsear la respuesta JSON
                 val result = parseGeminiResponse(responseText)
                 Result.success(result)
                 
             } catch (e: Exception) {
-                Result.failure(e)
+                val errorMessage = when {
+                    e.message?.contains("404") == true -> 
+                        "Modelo no disponible. Es posible que necesites una clave API diferente."
+                    e.message?.contains("403") == true || e.message?.contains("401") == true ->
+                        "Clave API inválida o expirada. Por favor, verifica tu clave."
+                    e.message?.contains("quota") == true ->
+                        "Cuota de API excedida. Intenta más tarde."
+                    e.message?.contains("network") == true || e.message?.contains("connection") == true ->
+                        "Error de conexión. Verifica tu internet e intenta de nuevo."
+                    else -> "Error al identificar la planta: ${e.message}"
+                }
+                Result.failure(Exception(errorMessage))
             }
         }
     }

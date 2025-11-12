@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Brightness4
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -55,8 +56,10 @@ fun SettingsScreen(
     val plants by viewModel.allPlants.collectAsState(initial = emptyList())
     val notificationsEnabled by preferencesManager.notificationsEnabled.collectAsState()
     val theme by preferencesManager.theme.collectAsState()
+    val geminiApiKey by preferencesManager.geminiApiKey.collectAsState()
 
     var showThemeDialog by remember { mutableStateOf(false) }
+    var showApiKeySetup by remember { mutableStateOf(false) }
 
 
     var showTestSnackbar by remember { mutableStateOf(false) }
@@ -128,6 +131,63 @@ fun SettingsScreen(
                     },
                     onDismiss = { showThemeDialog = false }
                 )
+            }
+
+            // API Key Card
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.Key,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(32.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "Inteligencia Artificial",
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    }
+
+                    HorizontalDivider()
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Clave API de Gemini",
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            Text(
+                                text = if (geminiApiKey.isNullOrBlank()) 
+                                    "No configurada" 
+                                else 
+                                    "Configurada ✓",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (geminiApiKey.isNullOrBlank()) 
+                                    MaterialTheme.colorScheme.error 
+                                else 
+                                    MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        Button(
+                            onClick = { showApiKeySetup = true }
+                        ) {
+                            Text(if (geminiApiKey.isNullOrBlank()) "Configurar" else "Editar")
+                        }
+                    }
+                }
             }
 
             Card(modifier = Modifier.fillMaxWidth()) {
@@ -298,6 +358,21 @@ fun SettingsScreen(
                 }
             }
         }
+    }
+
+    // API Key Setup Dialog
+    if (showApiKeySetup) {
+        ApiKeySetupScreen(
+            preferencesManager = preferencesManager,
+            onApiKeySaved = { 
+                showApiKeySetup = false
+                scope.launch {
+                    snackbarHostState.showSnackbar("Clave API guardada correctamente")
+                }
+            },
+            onNavigateBack = { showApiKeySetup = false },
+            plantIdentificationService = viewModel.plantIdentificationService
+        )
     }
 }
 

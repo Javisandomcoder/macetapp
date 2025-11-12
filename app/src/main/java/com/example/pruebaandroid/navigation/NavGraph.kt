@@ -41,6 +41,9 @@ object Settings
 @Serializable
 object PlantIdentification
 
+@Serializable
+object ApiKeySetup
+
 @Composable
 fun NavGraph(
     navController: NavHostController
@@ -173,7 +176,20 @@ fun NavGraph(
                 onNavigateToAddPlant = { result ->
                     viewModel.addIdentifiedPlantToCollection(result)
                     navController.popBackStack()
+                },
+                onNavigateToApiKeySetup = {
+                    navController.navigate(ApiKeySetup)
                 }
+            )
+        }
+
+        composable<ApiKeySetup> {
+            val viewModel: PlantViewModel = hiltViewModel()
+            ApiKeySetupScreen(
+                preferencesManager = viewModel.preferencesManager,
+                onApiKeySaved = { navController.popBackStack() },
+                onNavigateBack = { navController.popBackStack() },
+                plantIdentificationService = viewModel.plantIdentificationService
             )
         }
     }

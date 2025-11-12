@@ -21,7 +21,7 @@ class PlantViewModel @Inject constructor(
     private val repository: PlantRepository,
     private val application: Application,
     val preferencesManager: PreferencesManager,
-    private val plantIdentificationService: PlantIdentificationService
+    val plantIdentificationService: PlantIdentificationService
 ) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")

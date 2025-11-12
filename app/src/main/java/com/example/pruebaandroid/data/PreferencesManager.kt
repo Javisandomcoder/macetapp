@@ -26,6 +26,9 @@ class PreferencesManager @Inject constructor(@ApplicationContext context: Contex
     private val _theme = MutableStateFlow(getTheme())
     val theme: StateFlow<Theme> = _theme
 
+    private val _geminiApiKey = MutableStateFlow(getGeminiApiKey())
+    val geminiApiKey: StateFlow<String?> = _geminiApiKey
+
 
 
 
@@ -73,6 +76,22 @@ class PreferencesManager @Inject constructor(@ApplicationContext context: Contex
         return Pair(hour, minute)
     }
 
+    fun setGeminiApiKey(apiKey: String) {
+        prefs.edit().apply {
+            putString(KEY_GEMINI_API_KEY, apiKey)
+            apply()
+        }
+        _geminiApiKey.value = apiKey
+    }
+
+    fun getGeminiApiKey(): String? {
+        return prefs.getString(KEY_GEMINI_API_KEY, null)
+    }
+
+    fun hasGeminiApiKey(): Boolean {
+        return !getGeminiApiKey().isNullOrBlank()
+    }
+
     companion object {
 
         private const val KEY_NOTIFICATIONS_ENABLED = "notifications_enabled"
@@ -80,6 +99,7 @@ class PreferencesManager @Inject constructor(@ApplicationContext context: Contex
 
         private const val KEY_NOTIFICATION_HOUR = "notification_hour"
         private const val KEY_NOTIFICATION_MINUTE = "notification_minute"
+        private const val KEY_GEMINI_API_KEY = "gemini_api_key"
 
 
 
