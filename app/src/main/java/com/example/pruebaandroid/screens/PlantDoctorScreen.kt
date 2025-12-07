@@ -15,17 +15,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
-import com.example.pruebaandroid.R
 import com.example.pruebaandroid.ui.viewmodels.PlantViewModel
-import com.example.pruebaandroid.data.models.IdentificationState
 import kotlinx.coroutines.launch
 import java.io.File
 import java.text.SimpleDateFormat
@@ -33,10 +31,9 @@ import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlantIdentificationScreen(
+fun PlantDoctorScreen(
     viewModel: PlantViewModel,
     onNavigateBack: () -> Unit,
-    onNavigateToAddPlant: (com.example.pruebaandroid.data.models.PlantIdentificationResult) -> Unit,
     onNavigateToApiKeySetup: () -> Unit
 ) {
     val context = LocalContext.current
@@ -46,7 +43,7 @@ fun PlantIdentificationScreen(
     var showPermissionDialog by remember { mutableStateOf(false) }
     var showApiKeyDialog by remember { mutableStateOf(false) }
     
-    val identificationState by viewModel.identificationState.collectAsState()
+    val diagnosisState by viewModel.diagnosisState.collectAsState()
     val geminiApiKey by viewModel.preferencesManager.geminiApiKey.collectAsState(initial = null)
     val hasApiKey = !geminiApiKey.isNullOrBlank()
     
@@ -68,7 +65,7 @@ fun PlantIdentificationScreen(
             imageUri = cameraImageUri
             cameraImageUri?.let { uri ->
                 scope.launch {
-                    viewModel.identifyPlantFromUri(uri)
+                    viewModel.diagnosePlantFromUri(uri)
                 }
             }
         }
@@ -83,7 +80,7 @@ fun PlantIdentificationScreen(
             copiedUri?.let { uri ->
                 imageUri = uri
                 scope.launch {
-                    viewModel.identifyPlantFromUri(uri)
+                    viewModel.diagnosePlantFromUri(uri)
                 }
             }
         }
@@ -103,10 +100,10 @@ fun PlantIdentificationScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.identify_plant_title)) },
+                title = { Text("Doctor de Plantas") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -125,7 +122,7 @@ fun PlantIdentificationScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Image capture section
-            if (imageUri == null && !identificationState.isLoading) {
+            if (imageUri == null && !diagnosisState.isLoading) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -139,7 +136,7 @@ fun PlantIdentificationScreen(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Icon(
-                                Icons.Default.PhotoCamera,
+                                Icons.Default.HealthAndSafety,
                                 contentDescription = null,
                                 modifier = Modifier.size(48.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -147,9 +144,9 @@ fun PlantIdentificationScreen(
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = if (hasApiKey == null || hasApiKey == false) {
-                                    stringResource(R.string.configure_api_key_prompt)
+                                    "Configura tu API Key primero"
                                 } else {
-                                    stringResource(R.string.take_photo_prompt)
+                                    "Toma una foto de la planta enferma"
                                 },
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -161,7 +158,7 @@ fun PlantIdentificationScreen(
                                 ) {
                                     Icon(Icons.Default.Settings, contentDescription = null)
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text(stringResource(R.string.configure_api_key))
+                                    Text("Configurar API Key")
                                 }
                             }
                         }
@@ -198,7 +195,7 @@ fun PlantIdentificationScreen(
                     ) {
                         Icon(Icons.Default.PhotoCamera, contentDescription = null)
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(stringResource(R.string.camera))
+                        Text("Cámara")
                     }
                     
                     OutlinedButton(
@@ -213,13 +210,13 @@ fun PlantIdentificationScreen(
                     ) {
                         Icon(Icons.Default.Image, contentDescription = null)
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(stringResource(R.string.gallery))
+                        Text("Galería")
                     }
                 }
             }
             
             // Show image and loading state
-            if (imageUri != null || identificationState.isLoading) {
+            if (imageUri != null || diagnosisState.isLoading) {
                 if (imageUri != null) {
                     Card(
                         modifier = Modifier
@@ -228,7 +225,7 @@ fun PlantIdentificationScreen(
                     ) {
                         AsyncImage(
                             model = imageUri,
-                            contentDescription = stringResource(R.string.plant_image_desc),
+                            contentDescription = "Foto de planta enferma",
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Fit
                         )
@@ -236,7 +233,7 @@ fun PlantIdentificationScreen(
                 }
                 
                 // Loading state
-                if (identificationState.isLoading) {
+                if (diagnosisState.isLoading) {
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
@@ -249,7 +246,7 @@ fun PlantIdentificationScreen(
                             CircularProgressIndicator()
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
-                                text = stringResource(R.string.identifying_plant),
+                                text = "El Doctor Planta está analizando...",
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
@@ -257,7 +254,7 @@ fun PlantIdentificationScreen(
                 }
                 
                 // Error state
-                identificationState.error?.let { error ->
+                diagnosisState.error?.let { error ->
                     Card(
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.errorContainer
@@ -281,18 +278,18 @@ fun PlantIdentificationScreen(
                             Spacer(modifier = Modifier.height(8.dp))
                             Button(
                                 onClick = { 
-                                    viewModel.clearIdentificationState()
+                                    viewModel.clearDiagnosisState()
                                     imageUri = null
                                 }
                             ) {
-                                Text(stringResource(R.string.retry))
+                                Text("Intentar de nuevo")
                             }
                         }
                     }
                 }
                 
                 // Success state
-                identificationState.result?.let { result ->
+                diagnosisState.result?.let { result ->
                     Card(
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -300,98 +297,96 @@ fun PlantIdentificationScreen(
                             modifier = Modifier.padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Text(
-                                text = result.plantName,
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                            
-                            result.scientificName?.let { scientific ->
+                            // Problem and Severity
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 Text(
-                                    text = scientific,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    text = result.problem,
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                
+                                val severityColor = when(result.severity.lowercase()) {
+                                    "alta", "high" -> MaterialTheme.colorScheme.error
+                                    "media", "medium" -> Color(0xFFFFA000) // Amber
+                                    else -> MaterialTheme.colorScheme.primary
+                                }
+                                
+                                AssistChip(
+                                    onClick = { },
+                                    label = { Text(result.severity) },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Warning,
+                                            contentDescription = null,
+                                            tint = severityColor
+                                        )
+                                    },
+                                    colors = AssistChipDefaults.assistChipColors(
+                                        labelColor = severityColor
+                                    )
                                 )
                             }
                             
-                            result.description?.let { description ->
+                            Divider()
+                            
+                            // Description
+                            Text(
+                                text = "Síntomas",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = result.description,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            
+                            // Treatment
+                            Text(
+                                text = "Tratamiento Recomendado",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Card(
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                                )
+                            ) {
                                 Text(
-                                    text = stringResource(R.string.description_label),
+                                    text = result.treatment,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.padding(12.dp)
+                                )
+                            }
+                            
+                            // Prevention
+                            result.prevention?.let { prevention ->
+                                Text(
+                                    text = "Prevención",
                                     style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Medium
+                                    fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = description,
+                                    text = prevention,
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                             }
                             
-                            // Care instructions
-                            result.careInstructions?.let { care ->
-                                Text(
-                                    text = stringResource(R.string.care_instructions_label),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                
-                                care.watering?.let { watering ->
-                                    Text(
-                                        text = stringResource(R.string.watering_label, watering),
-                                        style = MaterialTheme.typography.bodyMedium
-                                    )
-                                }
-                                
-                                care.sunlight?.let { sunlight ->
-                                    Text(
-                                        text = stringResource(R.string.sunlight_label, sunlight),
-                                        style = MaterialTheme.typography.bodyMedium
-                                    )
-                                }
-                                
-                                care.soil?.let { soil ->
-                                    Text(
-                                        text = stringResource(R.string.soil_label, soil),
-                                        style = MaterialTheme.typography.bodyMedium
-                                    )
-                                }
-                                
-                                care.temperature?.let { temperature ->
-                                    Text(
-                                        text = stringResource(R.string.temperature_label, temperature),
-                                        style = MaterialTheme.typography.bodyMedium
-                                    )
-                                }
-                                
-                                care.humidity?.let { humidity ->
-                                    Text(
-                                        text = stringResource(R.string.humidity_label, humidity),
-                                        style = MaterialTheme.typography.bodyMedium
-                                    )
-                                }
-                            }
+                            Spacer(modifier = Modifier.height(8.dp))
                             
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            Button(
+                                onClick = { 
+                                    viewModel.clearDiagnosisState()
+                                    imageUri = null
+                                },
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-                                OutlinedButton(
-                                    onClick = { 
-                                        viewModel.clearIdentificationState()
-                                        imageUri = null
-                                    },
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Text(stringResource(R.string.another_image))
-                                }
-                                
-                                Button(
-                                    onClick = { onNavigateToAddPlant(result) },
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Icon(Icons.Default.Add, contentDescription = null)
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(stringResource(R.string.add_to_collection))
-                                }
+                                Text("Diagnosticar otra planta")
                             }
                         }
                     }
@@ -404,8 +399,8 @@ fun PlantIdentificationScreen(
     if (showApiKeyDialog) {
         AlertDialog(
             onDismissRequest = { showApiKeyDialog = false },
-            title = { Text(stringResource(R.string.api_key_required_title)) },
-            text = { Text(stringResource(R.string.api_key_required_text)) },
+            title = { Text("API Key Requerida") },
+            text = { Text("Para usar el Doctor de Plantas necesitas configurar tu API Key de Gemini.") },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -413,12 +408,12 @@ fun PlantIdentificationScreen(
                         onNavigateToApiKeySetup()
                     }
                 ) {
-                    Text(stringResource(R.string.configure_now))
+                    Text("Configurar ahora")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showApiKeyDialog = false }) {
-                    Text(stringResource(R.string.cancel))
+                    Text("Cancelar")
                 }
             }
         )
@@ -428,8 +423,8 @@ fun PlantIdentificationScreen(
     if (showPermissionDialog) {
         AlertDialog(
             onDismissRequest = { showPermissionDialog = false },
-            title = { Text(stringResource(R.string.camera_permission_title)) },
-            text = { Text(stringResource(R.string.camera_permission_text)) },
+            title = { Text("Permiso de cámara") },
+            text = { Text("Se necesita acceso a la cámara para tomar fotos de tus plantas.") },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -437,19 +432,19 @@ fun PlantIdentificationScreen(
                         cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                     }
                 ) {
-                    Text(stringResource(R.string.grant))
+                    Text("Conceder")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showPermissionDialog = false }) {
-                    Text(stringResource(R.string.cancel))
+                    Text("Cancelar")
                 }
             }
         )
     }
 }
 
-// Helper functions (these should be the same as in AddPhotoScreen)
+// Helper functions (duplicated from PlantIdentificationScreen - should be extracted to Utils)
 private fun createImageFile(context: Context): File? {
     return try {
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
@@ -457,7 +452,7 @@ private fun createImageFile(context: Context): File? {
         if (!storageDir.exists()) {
             storageDir.mkdirs()
         }
-        File(storageDir, "plant_${timeStamp}.jpg")
+        File(storageDir, "plant_diagnosis_${timeStamp}.jpg")
     } catch (e: Exception) {
         null
     }
@@ -466,10 +461,10 @@ private fun createImageFile(context: Context): File? {
 private fun copyImageToAppStorage(context: Context, sourceUri: Uri): Uri? {
     return try {
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-        val storageDir = context.getExternalFilesDir("plant_photos")
+        val storageDir = context.getExternalFilesDir("plant_diagnosis_photos")
         storageDir?.mkdirs()
 
-        val destinationFile = File(storageDir, "PLANT_${timeStamp}.jpg")
+        val destinationFile = File(storageDir, "DIAGNOSIS_${timeStamp}.jpg")
 
         context.contentResolver.openInputStream(sourceUri)?.use { input ->
             destinationFile.outputStream().use { output ->

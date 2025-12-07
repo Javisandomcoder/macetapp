@@ -22,7 +22,13 @@
       "Bash(.gradlew.bat assembleDebug)",
       "Bash(powershell.exe:*)",
       "Bash(cat:*)",
-      "Bash(cmd.exe /c \"cd /d C:\\Users\\javis\\AndroidStudioProjects\\PruebaAndroid && gradlew.bat assembleDebug 2>&1\")"
+      "Bash(cmd.exe /c \"cd /d C:\\Users\\javis\\AndroidStudioProjects\\PruebaAndroid && gradlew.bat assembleDebug 2>&1\")",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(gradlew.bat assembleDebug:*)"
     ],
     "deny": [],
     "ask": []

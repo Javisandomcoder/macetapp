@@ -199,6 +199,82 @@ class PlantIdentificationService(
         )
     }
     
+    suspend fun diagnosePlant(imageUri: Uri): Result<com.example.pruebaandroid.data.models.PlantDiagnosisResult> {
+        return try {
+            val bitmap = uriToBitmap(imageUri) ?: return Result.failure(IOException("No se pudo cargar la imagen"))
+            diagnosePlantFromBitmap(bitmap)
+        } catch (e: Exception) {
+            Result.failure(Exception("No se pudo procesar la imagen: ${e.message}"))
+        }
+    }
+
+    suspend fun diagnosePlantFromBitmap(bitmap: Bitmap): Result<com.example.pruebaandroid.data.models.PlantDiagnosisResult> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val generativeModel = getGenerativeModel() 
+                    ?: return@withContext Result.failure(Exception("No hay una clave API de Gemini configurada"))
+                
+                val prompt = """
+                    Actúa como un experto botánico y fitopatólogo. Analiza esta imagen de una planta y diagnostica si tiene algún problema de salud, plaga o enfermedad.
+                    
+                    Proporciona la siguiente información:
+                    1. Problema identificado (o "Planta sana" si no ves problemas)
+                    2. Severidad (Baja, Media, Alta)
+                    3. Descripción detallada de los síntomas observados
+                    4. Tratamiento recomendado paso a paso
+                    5. Medidas de prevención
+                    
+                    Responde en formato JSON con la siguiente estructura:
+                    {
+                        "problem": "nombre del problema",
+                        "severity": "Baja/Media/Alta",
+                        "description": "descripción de síntomas",
+                        "treatment": "tratamiento recomendado",
+                        "prevention": "prevención"
+                    }
+                """.trimIndent()
+                
+                val inputContent = content {
+                    image(bitmap)
+                    text(prompt)
+                }
+                
+                val response = try {
+                    generativeModel.generateContent(inputContent)
+                } catch (e: Exception) {
+                    return@withContext Result.failure(
+                        Exception("Error de API de Gemini: ${e.message ?: "Error desconocido"}")
+                    )
+                }
+                
+                val responseText = response.text ?: return@withContext Result.failure(
+                    Exception("No se obtuvo respuesta válida de Gemini.")
+                )
+                
+                val result = parseDiagnosisResponse(responseText)
+                Result.success(result)
+                
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
+
+    private fun parseDiagnosisResponse(responseText: String): com.example.pruebaandroid.data.models.PlantDiagnosisResult {
+        val cleanJson = responseText.replace("```json", "").replace("```", "").trim()
+        return parseDiagnosisJsonManually(cleanJson)
+    }
+
+    private fun parseDiagnosisJsonManually(json: String): com.example.pruebaandroid.data.models.PlantDiagnosisResult {
+        return com.example.pruebaandroid.data.models.PlantDiagnosisResult(
+            problem = extractValue(json, "problem") ?: "Diagnóstico no disponible",
+            severity = extractValue(json, "severity") ?: "Desconocida",
+            description = extractValue(json, "description") ?: "No se pudo generar una descripción.",
+            treatment = extractValue(json, "treatment") ?: "Consulta a un experto local.",
+            prevention = extractValue(json, "prevention")
+        )
+    }
+
     private fun extractValue(json: String, key: String): String? {
         val pattern = "\"$key\"\\s*:\\s*\"([^\"]+)\"".toRegex()
         return pattern.find(json)?.groupValues?.get(1)

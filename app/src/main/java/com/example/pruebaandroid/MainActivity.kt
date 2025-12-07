@@ -23,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
@@ -63,9 +64,11 @@ class MainActivity : ComponentActivity() {
                 com.example.pruebaandroid.ui.Theme.LIGHT -> false
                 com.example.pruebaandroid.ui.Theme.DARK -> true
                 com.example.pruebaandroid.ui.Theme.SYSTEM -> isSystemInDarkTheme()
+                com.example.pruebaandroid.ui.Theme.MIDNIGHT -> true // Midnight is always dark
+                else -> false // All other themes are light
             }
 
-            PruebaAndroidTheme(darkTheme = useDarkTheme) {
+            PruebaAndroidTheme(theme = theme, darkTheme = useDarkTheme) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     val navController = rememberNavController()
                     NavGraph(navController = navController)
@@ -74,23 +77,23 @@ class MainActivity : ComponentActivity() {
                     if (showAlarmPermissionDialog.value) {
                         AlertDialog(
                             onDismissRequest = { showAlarmPermissionDialog.value = false },
-                            title = { Text("Permisos de Alarma Necesarios") },
+                            title = { Text(stringResource(R.string.alarm_permission_title)) },
                             text = {
-                                Text("Para enviar notificaciones a la hora exacta, necesitamos permiso para programar alarmas exactas. Por favor, habilita este permiso en la configuración.")
+                                Text(stringResource(R.string.alarm_permission_text))
                             },
                             confirmButton = {
                                 Button(onClick = {
                                     openAlarmPermissionSettings()
                                     showAlarmPermissionDialog.value = false
                                 }) {
-                                    Text("Abrir Configuración")
+                                    Text(stringResource(R.string.open_settings))
                                 }
                             },
                             dismissButton = {
                                 TextButton(onClick = {
                                     showAlarmPermissionDialog.value = false
                                 }) {
-                                    Text("Continuar de todos modos")
+                                    Text(stringResource(R.string.continue_anyway))
                                 }
                             }
                         )

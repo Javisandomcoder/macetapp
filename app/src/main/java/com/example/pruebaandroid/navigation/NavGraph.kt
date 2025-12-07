@@ -6,7 +6,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
-import com.example.pruebaandroid.data.PlantViewModel
+import com.example.pruebaandroid.ui.viewmodels.PlantViewModel
 import com.example.pruebaandroid.screens.*
 import kotlinx.serialization.Serializable
 
@@ -42,6 +42,9 @@ object Settings
 object PlantIdentification
 
 @Serializable
+object PlantDoctor
+
+@Serializable
 object ApiKeySetup
 
 @Composable
@@ -67,6 +70,9 @@ fun NavGraph(
                 },
                 onNavigateToPlantIdentification = {
                     navController.navigate(PlantIdentification)
+                },
+                onNavigateToPlantDoctor = {
+                    navController.navigate(PlantDoctor)
                 }
             )
         }
@@ -177,6 +183,17 @@ fun NavGraph(
                     viewModel.addIdentifiedPlantToCollection(result)
                     navController.popBackStack()
                 },
+                onNavigateToApiKeySetup = {
+                    navController.navigate(ApiKeySetup)
+                }
+            )
+        }
+
+        composable<PlantDoctor> {
+            val viewModel: PlantViewModel = hiltViewModel()
+            PlantDoctorScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() },
                 onNavigateToApiKeySetup = {
                     navController.navigate(ApiKeySetup)
                 }

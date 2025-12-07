@@ -1,19 +1,29 @@
-package com.example.pruebaandroid.data
+package com.example.pruebaandroid.ui.viewmodels
 
 import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.pruebaandroid.ai.PlantIdentificationService
+import com.example.pruebaandroid.data.CareActivity
+import com.example.pruebaandroid.data.CareType
+import com.example.pruebaandroid.data.Plant
+import com.example.pruebaandroid.data.PlantFilter
+import com.example.pruebaandroid.data.PlantPhoto
+import com.example.pruebaandroid.data.PlantRepository
+import com.example.pruebaandroid.data.PreferencesManager
+import com.example.pruebaandroid.data.SortBy
 import com.example.pruebaandroid.data.models.IdentificationState
+import com.example.pruebaandroid.domain.WateringCalculator
 import com.example.pruebaandroid.notifications.AlarmScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
-import java.time.DayOfWeek
-import java.time.ZonedDateTime
 import javax.inject.Inject
 
 @HiltViewModel
@@ -21,7 +31,8 @@ class PlantViewModel @Inject constructor(
     private val repository: PlantRepository,
     private val application: Application,
     val preferencesManager: PreferencesManager,
-    val plantIdentificationService: PlantIdentificationService
+    val plantIdentificationService: PlantIdentificationService,
+    private val wateringCalculator: WateringCalculator
 ) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
@@ -118,45 +129,42 @@ class PlantViewModel @Inject constructor(
 
     fun waterPlant(plant: Plant) = viewModelScope.launch(Dispatchers.IO) {
         val currentDate = System.currentTimeMillis()
-        val nextWateringDate = calculateNextWateringDateWithSchedule(
+        val wateringResult = wateringCalculator.calculateNextWateringDateWithSchedule(
             plant.wateringFrequencyDays,
             plant.weekdayWateringHour,
             plant.weekdayWateringMinute,
             plant.weekendWateringHour,
-            plant.weekendWateringMinute
+            plant.weekendWateringMinute,
+            plant.isIndoor
         )
 
         val updatedPlant = plant.copy(
             lastWateredDate = currentDate,
-            nextWateringDate = nextWateringDate
+            nextWateringDate = wateringResult.date,
+            wateringAdjustmentReason = wateringResult.adjustmentReason
         )
         repository.updatePlant(updatedPlant)
         // No need to reschedule alarms as the watering times haven't changed
         // The UI will automatically update to show which plants need watering
     }
 
-    fun calculateNextWateringDate(wateringFrequencyDays: Int): Long {
-        return ZonedDateTime.now().plusDays(wateringFrequencyDays.toLong()).toInstant().toEpochMilli()
-    }
-
-    fun calculateNextWateringDateWithSchedule(
-        wateringFrequencyDays: Int,
+    suspend fun calculateNextWateringDateWithSchedule(
+        frequencyDays: Int,
         weekdayHour: Int,
         weekdayMinute: Int,
         weekendHour: Int,
-        weekendMinute: Int
+        weekendMinute: Int,
+        isIndoor: Boolean = true
     ): Long {
-        val nextDate = ZonedDateTime.now().plusDays(wateringFrequencyDays.toLong())
-
-        // Check if the next watering date falls on a weekend
-        val dayOfWeek = nextDate.dayOfWeek
-        val isWeekend = dayOfWeek == DayOfWeek.SATURDAY || dayOfWeek == DayOfWeek.SUNDAY
-
-        // Set the appropriate hour and minute based on the day type
-        val hour = if (isWeekend) weekendHour else weekdayHour
-        val minute = if (isWeekend) weekendMinute else weekdayMinute
-
-        return nextDate.withHour(hour).withMinute(minute).withSecond(0).withNano(0).toInstant().toEpochMilli()
+        val result = wateringCalculator.calculateNextWateringDateWithSchedule(
+            frequencyDays,
+            weekdayHour,
+            weekdayMinute,
+            weekendHour,
+            weekendMinute,
+            isIndoor
+        )
+        return result.date
     }
 
     // Photo operations
@@ -332,13 +340,16 @@ class PlantViewModel @Inject constructor(
     }
 
     fun addIdentifiedPlantToCollection(result: com.example.pruebaandroid.data.models.PlantIdentificationResult) = viewModelScope.launch {
+        val wateringResult = wateringCalculator.calculateNextWateringDate(7, isIndoor = true) // Default to Indoor for identified plants
+        
         val newPlant = Plant(
             name = result.plantName,
             species = result.scientificName ?: "Desconocida",
             description = result.description ?: "",
             wateringFrequencyDays = 7, // Valor por defecto
             lastWateredDate = System.currentTimeMillis(),
-            nextWateringDate = calculateNextWateringDate(7),
+            nextWateringDate = wateringResult.date,
+            wateringAdjustmentReason = wateringResult.adjustmentReason,
             sunlightNeeds = "Partial Sun", // Valor por defecto
             notes = "Identificado con IA: ${result.description}",
             weekdayWateringHour = 8,
@@ -355,17 +366,35 @@ class PlantViewModel @Inject constructor(
             soilType = "Universal",
             humidityLevel = "",
             temperatureRange = "",
-            difficultyLevel = "Beginner"
+            difficultyLevel = "Beginner",
+            isIndoor = true // Default
         )
         
         insertPlant(newPlant)
     }
-}
+    // Plant Diagnosis functions
+    private val _diagnosisState = MutableStateFlow(com.example.pruebaandroid.data.models.DiagnosisState())
+    val diagnosisState: StateFlow<com.example.pruebaandroid.data.models.DiagnosisState> = _diagnosisState.asStateFlow()
 
-enum class SortBy {
-    NAME, SPECIES, NEXT_WATERING, LAST_WATERED
-}
+    fun diagnosePlantFromUri(imageUri: Uri) = viewModelScope.launch {
+        _diagnosisState.value = com.example.pruebaandroid.data.models.DiagnosisState(isLoading = true)
+        
+        plantIdentificationService.diagnosePlant(imageUri)
+            .onSuccess { result ->
+                _diagnosisState.value = com.example.pruebaandroid.data.models.DiagnosisState(
+                    isLoading = false,
+                    result = result
+                )
+            }
+            .onFailure { exception ->
+                _diagnosisState.value = com.example.pruebaandroid.data.models.DiagnosisState(
+                    isLoading = false,
+                    error = exception.message ?: "Error al diagnosticar la planta"
+                )
+            }
+    }
 
-enum class PlantFilter {
-    ALL, NEEDS_WATER, DOES_NOT_NEED_WATER
+    fun clearDiagnosisState() {
+        _diagnosisState.value = com.example.pruebaandroid.data.models.DiagnosisState()
+    }
 }

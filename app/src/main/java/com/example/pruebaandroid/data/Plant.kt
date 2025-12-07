@@ -46,5 +46,9 @@ data class Plant(
     // Seasonal schedule (when to switch frequencies)
     val useSeasonalSchedule: Boolean = false,
     val springStartMonth: Int = 3, // March (1-12)
-    val fallStartMonth: Int = 9  // September (1-12)
+    val fallStartMonth: Int = 9,  // September (1-12)
+
+    // Smart Watering Features
+    val isIndoor: Boolean = true, // Default to Indoor
+    val wateringAdjustmentReason: String? = null // "RAIN", "HEAT", "NONE" or null
 )

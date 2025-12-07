@@ -17,7 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.pruebaandroid.data.CareActivity
 import com.example.pruebaandroid.data.CareType
-import com.example.pruebaandroid.data.PlantViewModel
+import com.example.pruebaandroid.ui.viewmodels.PlantViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)

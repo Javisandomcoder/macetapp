@@ -22,7 +22,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
 import com.example.pruebaandroid.data.PlantPhoto
-import com.example.pruebaandroid.data.PlantViewModel
+import com.example.pruebaandroid.ui.viewmodels.PlantViewModel
 import kotlinx.coroutines.launch
 import java.io.File
 import java.text.SimpleDateFormat

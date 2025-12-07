@@ -43,7 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.pruebaandroid.data.Plant
-import com.example.pruebaandroid.data.PlantViewModel
+import com.example.pruebaandroid.ui.viewmodels.PlantViewModel
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -632,6 +632,21 @@ fun PlantDetailScreen(
 
     // Water confirmation dialog
     if (showWaterDialog) {
+        var calculatedNextDate by remember { mutableStateOf<Long?>(null) }
+        
+        LaunchedEffect(plant) {
+            plant?.let { currentPlant ->
+                calculatedNextDate = viewModel.calculateNextWateringDateWithSchedule(
+                    currentPlant.wateringFrequencyDays,
+                    currentPlant.weekdayWateringHour,
+                    currentPlant.weekdayWateringMinute,
+                    currentPlant.weekendWateringHour,
+                    currentPlant.weekendWateringMinute,
+                    currentPlant.isIndoor
+                )
+            }
+        }
+
         AlertDialog(
             onDismissRequest = { showWaterDialog = false },
             icon = {
@@ -645,29 +660,30 @@ fun PlantDetailScreen(
             title = { Text("Confirmar riego") },
             text = {
                 plant?.let { currentPlant ->
-                    val nextWateringDate = viewModel.calculateNextWateringDateWithSchedule(
-                        currentPlant.wateringFrequencyDays,
-                        currentPlant.weekdayWateringHour,
-                        currentPlant.weekdayWateringMinute,
-                        currentPlant.weekendWateringHour,
-                        currentPlant.weekendWateringMinute
-                    )
                     Column {
                         Text("¿Deseas marcar '${currentPlant.name}' como regada?")
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Próximo riego: ${dateFormat.format(Date(nextWateringDate))} a las ${
-                                java.util.Calendar.getInstance().apply { timeInMillis = nextWateringDate }.let { cal ->
-                                    val isWeekend = cal.get(java.util.Calendar.DAY_OF_WEEK) == java.util.Calendar.SATURDAY ||
-                                        cal.get(java.util.Calendar.DAY_OF_WEEK) == java.util.Calendar.SUNDAY
-                                    val hour = if (isWeekend) currentPlant.weekendWateringHour else currentPlant.weekdayWateringHour
-                                    val minute = if (isWeekend) currentPlant.weekendWateringMinute else currentPlant.weekdayWateringMinute
-                                    String.format("%02d:%02d", hour, minute)
-                                }
-                            }",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        
+                        if (calculatedNextDate != null) {
+                            Text(
+                                text = "Próximo riego: ${dateFormat.format(Date(calculatedNextDate!!))} a las ${
+                                    java.util.Calendar.getInstance().apply { timeInMillis = calculatedNextDate!! }.let { cal ->
+                                        val isWeekend = cal.get(java.util.Calendar.DAY_OF_WEEK) == java.util.Calendar.SATURDAY ||
+                                            cal.get(java.util.Calendar.DAY_OF_WEEK) == java.util.Calendar.SUNDAY
+                                        val hour = if (isWeekend) currentPlant.weekendWateringHour else currentPlant.weekdayWateringHour
+                                        val minute = if (isWeekend) currentPlant.weekendWateringMinute else currentPlant.weekdayWateringMinute
+                                        String.format("%02d:%02d", hour, minute)
+                                    }
+                                }",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } else {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp
+                            )
+                        }
                     }
                 }
             },

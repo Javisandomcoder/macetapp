@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Original colors -->
     <color name="purple_200">#FFBB86FC</color>
     <color name="purple_500">#FF6200EE</color>
     <color name="purple_700">#FF3700B3</color>
@@ -7,4 +8,98 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Ocean Theme Colors -->
+    <color name="ocean_primary">#FF006064</color>
+    <color name="ocean_primary_container">#FF4DD0E1</color>
+    <color name="ocean_on_primary">#FFFFFFFF</color>
+    <color name="ocean_on_primary_container">#FF00363A</color>
+    <color name="ocean_secondary">#FF4A6FA5</color>
+    <color name="ocean_secondary_container">#FFE1EFFF</color>
+    <color name="ocean_on_secondary">#FFFFFFFF</color>
+    <color name="ocean_surface">#FFF5FBFF</color>
+    <color name="ocean_on_surface">#FF1A1C1E</color>
+
+    <!-- Sunset Theme Colors -->
+    <color name="sunset_primary">#FFFF6D00</color>
+    <color name="sunset_primary_container">#FFFFAB91</color>
+    <color name="sunset_on_primary">#FFFFFFFF</color>
+    <color name="sunset_on_primary_container">#FF2E1500</color>
+    <color name="sunset_secondary">#FF745756</color>
+    <color name="sunset_secondary_container">#FFFFDAD6</color>
+    <color name="sunset_on_secondary">#FFFFFFFF</color>
+    <color name="sunset_surface">#FFFFFBFF</color>
+    <color name="sunset_on_surface">#FF1F1B1A</color>
+
+    <!-- Forest Theme Colors -->
+    <color name="forest_primary">#FF2E7D32</color>
+    <color name="forest_primary_container">#FF81C784</color>
+    <color name="forest_on_primary">#FFFFFFFF</color>
+    <color name="forest_on_primary_container">#FF003908</color>
+    <color name="forest_secondary">#FF558B2F</color>
+    <color name="forest_secondary_container">#FFDCE9C6</color>
+    <color name="forest_on_secondary">#FFFFFFFF</color>
+    <color name="forest_surface">#FFFCFDF6</color>
+    <color name="forest_on_surface">#FF1C1C1A</color>
+
+    <!-- Lavender Theme Colors -->
+    <color name="lavender_primary">#FF7B1FA2</color>
+    <color name="lavender_primary_container">#FFF8BBD0</color>
+    <color name="lavender_on_primary">#FFFFFFFF</color>
+    <color name="lavender_on_primary_container">#FF3A0048</color>
+    <color name="lavender_secondary">#FF6A1B9A</color>
+    <color name="lavender_secondary_container">#FFE1BEE7</color>
+    <color name="lavender_on_secondary">#FFFFFFFF</color>
+    <color name="lavender_surface">#FFFFF8FD</color>
+    <color name="lavender_on_surface">#FF1C1B1F</color>
+
+    <!-- Midnight Theme Colors (Dark) -->
+    <color name="midnight_primary">#FF90CAF9</color>
+    <color name="midnight_primary_container">#FF1565C0</color>
+    <color name="midnight_on_primary">#FF0D47A1</color>
+    <color name="midnight_on_primary_container">#FFE3F2FD</color>
+    <color name="midnight_secondary">#FFCE93D8</color>
+    <color name="midnight_secondary_container">#FF8E24AA</color>
+    <color name="midnight_on_secondary">#FF4A148C</color>
+    <color name="midnight_surface">#FF121212</color>
+    <color name="midnight_on_surface">#FFE0E0E0</color>
+
+    <!-- Coral Theme Colors -->
+    <color name="coral_primary">#FFFF5722</color>
+    <color name="coral_primary_container">#FFFFCCBC</color>
+    <color name="coral_on_primary">#FFFFFFFF</color>
+    <color name="coral_on_primary_container">#FFBF360C</color>
+    <color name="coral_secondary">#FF26C6DA</color>
+    <color name="coral_secondary_container">#FFB2EBF2</color>
+    <color name="coral_on_secondary">#FF006064</color>
+    <color name="coral_surface">#FFFBE9E7</color>
+    <color name="coral_on_surface">#FF3E2723</color>
+
+    <!-- Royal Theme Colors -->
+    <color name="royal_primary">#FF3F51B5</color>
+    <color name="royal_primary_container">#FFC5CAE9</color>
+    <color name="royal_on_primary">#FFFFFFFF</color>
+    <color name="royal_on_primary_container">#FF1A237E</color>
+    <color name="royal_secondary">#FF9C27B0</color>
+    <color name="royal_secondary_container">#FFFCE4EC</color>
+    <color name="royal_on_secondary">#FFFFFFFF</color>
+    <color name="royal_surface">#FFF5F5F5</color>
+    <color name="royal_on_surface">#FF212121</color>
+
+    <!-- Mint Theme Colors -->
+    <color name="mint_primary">#FF009688</color>
+    <color name="mint_primary_container">#FFB2DFDB</color>
+    <color name="mint_on_primary">#FFFFFFFF</color>
+    <color name="mint_on_primary_container">#FF004D40</color>
+    <color name="mint_secondary">#FF4DB6AC</color>
+    <color name="mint_secondary_container">#FFE0F2F1</color>
+    <color name="mint_on_secondary">#FF00695C</color>
+    <color name="mint_surface">#FFF1F8E9</color>
+    <color name="mint_on_surface">#FF1B5E20</color>
+
+    <!-- Error and Common Colors -->
+    <color name="error_red">#FFB00020</color>
+    <color name="error_container">#FFFEF2F2</color>
+    <color name="on_error">#FFFFFFFF</color>
+    <color name="on_error_container">#FF410002</color>
 </resources>

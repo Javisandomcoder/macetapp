@@ -22,6 +22,8 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.LocalHospital
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,13 +36,15 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.pruebaandroid.data.Plant
 import com.example.pruebaandroid.data.PlantFilter
-import com.example.pruebaandroid.data.PlantViewModel
+import com.example.pruebaandroid.ui.viewmodels.PlantViewModel
 import com.example.pruebaandroid.data.SortBy
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import androidx.compose.ui.res.stringResource
 import java.util.Locale
+import com.example.pruebaandroid.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,7 +53,8 @@ fun PlantListScreen(
     onNavigateToAddPlant: () -> Unit,
     onNavigateToPlantDetail: (Int) -> Unit,
     onNavigateToSettings: () -> Unit,
-    onNavigateToPlantIdentification: () -> Unit
+    onNavigateToPlantIdentification: () -> Unit,
+    onNavigateToPlantDoctor: () -> Unit
 ) {
     val plants by viewModel.filteredAndSortedPlants.collectAsStateWithLifecycle(initialValue = emptyList())
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
@@ -63,6 +68,7 @@ fun PlantListScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     var showFilterDialog by remember { mutableStateOf(false) }
     var showSortDialog by remember { mutableStateOf(false) }
@@ -75,10 +81,10 @@ fun PlantListScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("Mis Plantas")
+                        Text(stringResource(R.string.my_plants))
                         if (plantsNeedingWater > 0) {
                             Text(
-                                text = "$plantsNeedingWater necesita${if (plantsNeedingWater != 1) "n" else ""} riego",
+                                text = stringResource(R.string.plants_needing_water, plantsNeedingWater, if (plantsNeedingWater != 1) "n" else ""),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.error
                             )
@@ -86,29 +92,37 @@ fun PlantListScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onNavigateToPlantDoctor) {
+                        Icon(Icons.Default.LocalHospital, contentDescription = "Doctor de Plantas")
+                    }
                     IconButton(onClick = onNavigateToPlantIdentification) {
-                        Icon(Icons.Default.CameraAlt, contentDescription = "Identificar planta")
+                        Icon(Icons.Default.CameraAlt, contentDescription = stringResource(R.string.identify_plant_desc))
                     }
                     IconButton(onClick = { showFilterDialog = true }) {
-                        Icon(Icons.Default.FilterList, contentDescription = "Filtrar")
+                        Icon(Icons.Default.FilterList, contentDescription = stringResource(R.string.filter_desc))
                     }
                     IconButton(onClick = { showSortDialog = true }) {
-                        Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = "Ordenar")
+                        Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = stringResource(R.string.sort_desc))
                     }
                     IconButton(onClick = onNavigateToSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = "Configuración")
+                        Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.settings_desc))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    actionIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
-            FloatingActionButton(onClick = onNavigateToAddPlant) {
-                Icon(Icons.Default.Add, contentDescription = "Agregar planta")
+            FloatingActionButton(
+                onClick = onNavigateToAddPlant,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ) {
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_plant_desc))
             }
         }
     ) { paddingValues ->
@@ -121,14 +135,27 @@ fun PlantListScreen(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { viewModel.updateSearchQuery(it) },
-                placeholder = { Text("Buscar plantas...") },
+                placeholder = {
+                    Text(
+                        stringResource(R.string.search_plants_placeholder),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
                 leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = "Buscar")
+                    Icon(
+                        Icons.Default.Search,
+                        contentDescription = stringResource(R.string.search_desc),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 },
                 trailingIcon = {
                     if (searchQuery.isNotBlank()) {
                         IconButton(onClick = { viewModel.updateSearchQuery("") }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Limpiar búsqueda")
+                            Icon(
+                                Icons.Default.Clear,
+                                contentDescription = stringResource(R.string.clear_search_desc),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 },
@@ -148,19 +175,19 @@ fun PlantListScreen(
             ) {
                 Text(
                     text = when (filterBy) {
-                        PlantFilter.ALL -> "Todas las plantas"
-                        PlantFilter.NEEDS_WATER -> "Necesitan riego"
-                        PlantFilter.DOES_NOT_NEED_WATER -> "No necesitan riego"
+                        PlantFilter.ALL -> stringResource(R.string.filter_all)
+                        PlantFilter.NEEDS_WATER -> stringResource(R.string.filter_needs_water)
+                        PlantFilter.DOES_NOT_NEED_WATER -> stringResource(R.string.filter_no_needs_water)
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = when (sortBy) {
-                        SortBy.NAME -> "Ordenado por nombre"
-                        SortBy.SPECIES -> "Ordenado por especie"
-                        SortBy.NEXT_WATERING -> "Ordenado por próximo riego"
-                        SortBy.LAST_WATERED -> "Ordenado por último riego"
+                        SortBy.NAME -> stringResource(R.string.sort_name)
+                        SortBy.SPECIES -> stringResource(R.string.sort_species)
+                        SortBy.NEXT_WATERING -> stringResource(R.string.sort_next_watering)
+                        SortBy.LAST_WATERED -> stringResource(R.string.sort_last_watered)
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -174,15 +201,30 @@ fun PlantListScreen(
                         .padding(16.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = if (searchQuery.isNotBlank() || filterBy != PlantFilter.ALL) {
-                            "No se encontraron plantas con los filtros actuales"
-                        } else {
-                            "No hay plantas. Agrega tu primera planta!"
-                        },
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = if (searchQuery.isNotBlank() || filterBy != PlantFilter.ALL) {
+                                stringResource(R.string.no_plants_found)
+                            } else {
+                                stringResource(R.string.no_plants_yet)
+                            },
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = if (searchQuery.isNotBlank() || filterBy != PlantFilter.ALL) {
+                                stringResource(R.string.try_other_filters)
+                            } else {
+                                stringResource(R.string.add_first_plant)
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             } else {
                 LazyColumn(
@@ -211,7 +253,7 @@ fun PlantListScreen(
                                 viewModel.waterPlant(plant)
                                 scope.launch {
                                     snackbarHostState.showSnackbar(
-                                        message = "✓ ${plant.name} ha sido regada",
+                                        message = context.getString(R.string.plant_watered_message, plant.name),
                                         duration = SnackbarDuration.Short
                                     )
                                 }
@@ -257,10 +299,10 @@ fun FilterDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Filtrar plantas") },
+        title = { Text(stringResource(R.string.filter_plants_title)) },
         text = {
             Column {
-                PlantFilter.values().forEach { filter ->
+                PlantFilter.entries.forEach { filter ->
                     Row(
                         Modifier
                             .fillMaxWidth()
@@ -275,9 +317,9 @@ fun FilterDialog(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = when (filter) {
-                                PlantFilter.ALL -> "Todas las plantas"
-                                PlantFilter.NEEDS_WATER -> "Necesitan riego"
-                                PlantFilter.DOES_NOT_NEED_WATER -> "No necesitan riego"
+                                PlantFilter.ALL -> stringResource(R.string.filter_all)
+                                PlantFilter.NEEDS_WATER -> stringResource(R.string.filter_needs_water)
+                                PlantFilter.DOES_NOT_NEED_WATER -> stringResource(R.string.filter_no_needs_water)
                             }
                         )
                     }
@@ -286,7 +328,7 @@ fun FilterDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("OK")
+                Text(stringResource(R.string.ok))
             }
         }
     )
@@ -300,10 +342,10 @@ fun SortDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Ordenar plantas") },
+        title = { Text(stringResource(R.string.sort_plants_title)) },
         text = {
             Column {
-                SortBy.values().forEach { sort ->
+                SortBy.entries.forEach { sort ->
                     Row(
                         Modifier
                             .fillMaxWidth()
@@ -318,10 +360,10 @@ fun SortDialog(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = when (sort) {
-                                SortBy.NAME -> "Nombre"
-                                SortBy.SPECIES -> "Especie"
-                                SortBy.NEXT_WATERING -> "Próximo riego"
-                                SortBy.LAST_WATERED -> "Último riego"
+                                SortBy.NAME -> stringResource(R.string.sort_option_name)
+                                SortBy.SPECIES -> stringResource(R.string.sort_option_species)
+                                SortBy.NEXT_WATERING -> stringResource(R.string.sort_option_next_watering)
+                                SortBy.LAST_WATERED -> stringResource(R.string.sort_option_last_watered)
                             }
                         )
                     }
@@ -330,7 +372,7 @@ fun SortDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("OK")
+                Text(stringResource(R.string.ok))
             }
         }
     )
@@ -363,14 +405,37 @@ fun PlantCard(
         Pair(lastWatered, nextWatered)
     }
 
-    // Simplified for better performance - removed complex animation
-    // keeping only essential functionality
+    // Enhanced theme-aware colors with harmony
+    val cardColors = if (needsWater) {
+        CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer,
+            contentColor = MaterialTheme.colorScheme.onErrorContainer
+        )
+    } else {
+        CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f),
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f)
+        )
+    }
+
+    // Enhanced border color based on theme
+    val borderColor = if (needsWater) {
+        MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
+    } else {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+    }
+
+    // Theme-aware elevated shadow color
+    val elevationColors = CardDefaults.cardElevation(
+        defaultElevation = if (needsWater) 6.dp else 3.dp,
+        pressedElevation = if (needsWater) 8.dp else 4.dp
+    )
 
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Eliminar planta") },
-            text = { Text("¿Estás seguro de que deseas eliminar '${plant.name}'? Esta acción no se puede deshacer.") },
+            title = { Text(stringResource(R.string.delete_plant_title)) },
+            text = { Text(stringResource(R.string.delete_plant_confirmation, plant.name)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -378,37 +443,36 @@ fun PlantCard(
                         onDeleteClick()
                     }
                 ) {
-                    Text("Eliminar", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancelar")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
     }
 
-    // Cache container color calculation - will be computed inline
-    // since MaterialTheme is only available in composable context
-
+    // Enhanced Card with better theming
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onPlantClick() },
-        colors = CardDefaults.cardColors(
-            containerColor = if (needsWater)
-                MaterialTheme.colorScheme.errorContainer
-            else
-                MaterialTheme.colorScheme.surfaceVariant
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        colors = cardColors,
+        elevation = elevationColors,
+        shape = MaterialTheme.shapes.medium,
+        border = androidx.compose.foundation.BorderStroke(
+            width = if (needsWater) 2.dp else 1.dp,
+            color = borderColor
+        )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
+            // Header with plant name and actions
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -420,41 +484,196 @@ fun PlantCard(
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
+                        color = if (needsWater)
+                            MaterialTheme.colorScheme.onErrorContainer
+                        else
+                            MaterialTheme.colorScheme.onSurface
                     )
-                    Text(
-                        text = plant.species,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            shape = MaterialTheme.shapes.extraSmall,
+                            color = if (plant.isIndoor) 
+                                MaterialTheme.colorScheme.secondaryContainer 
+                            else 
+                                MaterialTheme.colorScheme.tertiaryContainer,
+                            modifier = Modifier.padding(top = 4.dp)
+                        ) {
+                            Text(
+                                text = if (plant.isIndoor) "🏠" else "🌳",
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                            )
+                        }
+                        
+                        Text(
+                            text = plant.species,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (needsWater)
+                                MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
 
-Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Enhanced water button with better theme integration
                     FilledTonalIconButton(
                         onClick = onWaterClick,
                         colors = IconButtonDefaults.filledTonalIconButtonColors(
-                            containerColor = if (needsWater)
-                                MaterialTheme.colorScheme.primary
-                            else
+                            containerColor = if (needsWater) {
+                                MaterialTheme.colorScheme.error
+                            } else {
                                 MaterialTheme.colorScheme.secondaryContainer
-                        )
+                            },
+                            contentColor = if (needsWater) {
+                                MaterialTheme.colorScheme.onError
+                            } else {
+                                MaterialTheme.colorScheme.onSecondaryContainer
+                            }
+                        ),
+                        modifier = Modifier.size(40.dp)
                     ) {
                         Icon(
                             Icons.Default.WaterDrop,
-                            contentDescription = "Regar planta",
-                            tint = if (needsWater)
-                                MaterialTheme.colorScheme.onPrimary
-                            else
-                                MaterialTheme.colorScheme.onSecondaryContainer
+                            contentDescription = stringResource(R.string.water_plant_desc),
+                            modifier = Modifier.size(20.dp)
                         )
                     }
-                    IconButton(onClick = { showDeleteDialog = true }) {
+
+                    // Enhanced delete button
+                    IconButton(
+                        onClick = { showDeleteDialog = true },
+                        colors = IconButtonDefaults.iconButtonColors(
+                            contentColor = if (needsWater)
+                                MaterialTheme.colorScheme.onError
+                            else
+                                MaterialTheme.colorScheme.error
+                        ),
+                        modifier = Modifier.size(40.dp)
+                    ) {
                         Icon(
                             Icons.Default.Delete,
-                            contentDescription = "Eliminar planta",
-                            tint = MaterialTheme.colorScheme.error
+                            contentDescription = stringResource(R.string.delete_plant_desc),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Watering information with enhanced theming
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = if (needsWater) {
+                    MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
+                } else {
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                },
+                shape = MaterialTheme.shapes.small
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = stringResource(R.string.last_watered_label),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (needsWater)
+                                MaterialTheme.colorScheme.error
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = formattedInfo.first,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (needsWater)
+                                MaterialTheme.colorScheme.onErrorContainer
+                            else
+                                MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            text = stringResource(R.string.next_watering_label),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (needsWater)
+                                MaterialTheme.colorScheme.error
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            // Smart Badge Indicator
+                            if (plant.wateringAdjustmentReason == "RAIN") {
+                                Text(
+                                    text = "🌧️",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.padding(end = 4.dp)
+                                )
+                            } else if (plant.wateringAdjustmentReason == "HEAT") {
+                                Text(
+                                    text = "☀️",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.padding(end = 4.dp)
+                                )
+                            }
+                            
+                            Text(
+                                text = formattedInfo.second,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (needsWater)
+                                    MaterialTheme.colorScheme.onErrorContainer
+                                else
+                                    MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Enhanced water need indicator
+            if (needsWater) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Surface(
+                    color = MaterialTheme.colorScheme.error,
+                    shape = MaterialTheme.shapes.small,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.WaterDrop,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onError
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(R.string.needs_water_alert),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onError
                         )
                     }
                 }
@@ -462,69 +681,72 @@ Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Row(
+            // Plant care information with enhanced theming
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f),
+                shape = MaterialTheme.shapes.small
             ) {
-                Column {
-                    Text(
-                        text = "Último riego:",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    Text(
-                        text = formattedInfo.first,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = if (needsWater) "Necesita riego!" else "Próximo riego:",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (needsWater) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = formattedInfo.second,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (needsWater) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-
-            if (needsWater) {
-                Spacer(modifier = Modifier.height(8.dp))
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        Icons.Default.WaterDrop,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.error
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "¡NECESITA RIEGO AHORA!",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.error
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.WaterDrop,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.secondary
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Column {
+                            Text(
+                                text = stringResource(R.string.frequency_label),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = stringResource(R.string.frequency_value, plant.wateringFrequencyDays),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LightMode,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.secondary
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Column(
+                            horizontalAlignment = Alignment.End
+                        ) {
+                            Text(
+                                text = stringResource(R.string.light_label),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = plant.sunlightNeeds,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
                 }
             }
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = "Frecuencia: cada ${plant.wateringFrequencyDays} días | Luz: ${plant.sunlightNeeds}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
         }
     }
 }

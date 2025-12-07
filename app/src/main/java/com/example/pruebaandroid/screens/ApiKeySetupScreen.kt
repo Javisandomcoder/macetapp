@@ -142,8 +142,10 @@ fun ApiKeySetupScreen(
                         style = MaterialTheme.typography.bodyMedium
                     )
                     
+                    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+                    
                     OutlinedButton(
-                        onClick = { /* TODO: Open browser */ },
+                        onClick = { uriHandler.openUri("https://aistudio.google.com/app/apikey") },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(Icons.Default.Language, contentDescription = null)

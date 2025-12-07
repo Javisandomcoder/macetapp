@@ -10,8 +10,11 @@ import android.content.Intent
 import android.os.Build
 import android.util.Log
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Brightness4
@@ -31,12 +34,14 @@ import androidx.core.app.NotificationCompat
 import androidx.work.*
 import com.example.pruebaandroid.MainActivity
 import com.example.pruebaandroid.R
-import com.example.pruebaandroid.data.PlantViewModel
+import com.example.pruebaandroid.ui.viewmodels.PlantViewModel
 import com.example.pruebaandroid.data.PreferencesManager
 import com.example.pruebaandroid.notifications.AlarmScheduler
 import com.example.pruebaandroid.notifications.WateringReminderWorker
 import com.example.pruebaandroid.notifications.WateringReminderReceiver
 import com.example.pruebaandroid.ui.Theme
+import com.example.pruebaandroid.ui.*
+import com.example.pruebaandroid.ui.themeDescription
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -427,23 +432,92 @@ private fun ThemeSelectionDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Seleccionar Tema") },
+        title = {
+            Text(
+                "Seleccionar Tema",
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        },
         text = {
-            Column {
-                Theme.values().forEach { theme ->
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp)
-                            .clickable { onThemeSelected(theme) },
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = currentTheme == theme,
-                            onClick = { onThemeSelected(theme) }
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(theme.name.lowercase().replaceFirstChar { it.uppercase() })
+            // Calculate max height for the dialog content to fit on mobile screens
+            val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+            val screenHeight = configuration.screenHeightDp.dp
+            val maxContentHeight = (screenHeight * 0.6f).coerceAtMost(400.dp)
+
+            Column(
+                modifier = Modifier.heightIn(max = maxContentHeight)
+            ) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    items(Theme.values().size) { index ->
+                        val theme = Theme.values()[index]
+
+                        // Enhanced theme item with better visual hierarchy
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onThemeSelected(theme) },
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (currentTheme == theme)
+                                    MaterialTheme.colorScheme.primaryContainer
+                                else
+                                    MaterialTheme.colorScheme.surface,
+                                contentColor = if (currentTheme == theme)
+                                    MaterialTheme.colorScheme.onPrimaryContainer
+                                else
+                                    MaterialTheme.colorScheme.onSurface
+                            ),
+                            elevation = CardDefaults.cardElevation(
+                                defaultElevation = if (currentTheme == theme) 2.dp else 0.dp
+                            ),
+                            border = if (currentTheme == theme)
+                                androidx.compose.foundation.BorderStroke(
+                                    width = 1.dp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            else null
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = currentTheme == theme,
+                                    onClick = { onThemeSelected(theme) },
+                                    colors = RadioButtonDefaults.colors(
+                                        selectedColor = MaterialTheme.colorScheme.primary,
+                                        unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = theme.displayName,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = if (currentTheme == theme) FontWeight.Bold else FontWeight.Normal,
+                                        color = if (currentTheme == theme)
+                                            MaterialTheme.colorScheme.onPrimaryContainer
+                                        else
+                                            MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = theme.themeDescription,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (currentTheme == theme)
+                                            MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                                        else
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -452,6 +526,7 @@ private fun ThemeSelectionDialog(
             TextButton(onClick = onDismiss) {
                 Text("Cancelar")
             }
-        }
+        },
+        modifier = Modifier.fillMaxWidth()
     )
 }

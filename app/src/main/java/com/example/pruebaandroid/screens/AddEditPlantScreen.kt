@@ -13,7 +13,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.pruebaandroid.data.Plant
-import com.example.pruebaandroid.data.PlantViewModel
+import com.example.pruebaandroid.ui.viewmodels.PlantViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,9 +59,10 @@ fun AddEditPlantScreen(
         }
     }
 
-    val sunlightOptions = listOf("Sol Completo", "Sol Parcial", "Sombra")
     val hourOptions = (0..23).map { hour -> String.format("%02d", hour) }
     val minuteOptions = (0..59 step 5).map { minute -> String.format("%02d", minute) }
+
+
 
     Scaffold(
         topBar = {
@@ -112,6 +113,71 @@ fun AddEditPlantScreen(
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words)
             )
+
+            // Location Switch (Indoor/Outdoor)
+            var isIndoor by remember { mutableStateOf(true) }
+            
+            // Sync with plant data when loaded
+            LaunchedEffect(plantId) {
+                plantId?.let { id ->
+                    viewModel.getPlantById(id)?.let { plant ->
+                        isIndoor = plant.isIndoor
+                    }
+                }
+            }
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Ubicación de la planta",
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                        Text(
+                            text = if (isIndoor) "Interior 🏠" else "Exterior 🌳",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        if (!isIndoor) {
+                            Text(
+                                text = "El riego se ajustará con el clima (lluvia/calor)",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                    Switch(
+                        checked = isIndoor,
+                        onCheckedChange = { isIndoor = it }
+                    )
+                }
+            }
+
+            // Dynamic sunlight options
+            val outdoorSunlightOptions = listOf("Sol Completo", "Sol Parcial", "Sombra")
+            val indoorSunlightOptions = listOf("Luz Indirecta", "Sombra")
+            
+            val sunlightOptions = if (isIndoor) indoorSunlightOptions else outdoorSunlightOptions
+
+            // Auto-update sunlightSelection if invalid for the new mode
+            LaunchedEffect(isIndoor) {
+                if (isIndoor && sunlightNeeds !in indoorSunlightOptions) {
+                    sunlightNeeds = "Luz Indirecta"
+                } else if (!isIndoor && sunlightNeeds !in outdoorSunlightOptions) {
+                    sunlightNeeds = "Sol Parcial"
+                }
+            }
 
             OutlinedTextField(
                 value = description,
@@ -403,7 +469,8 @@ fun AddEditPlantScreen(
                                 weekdayWateringHour = weekdayHour,
                                 weekdayWateringMinute = weekdayMinute,
                                 weekendWateringHour = weekendHour,
-                                weekendWateringMinute = weekendMinute
+                                weekendWateringMinute = weekendMinute,
+                                isIndoor = isIndoor
                             )
 
                             if (isEditMode) {

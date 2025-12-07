@@ -1,3 +1,83 @@
 <resources>
     <string name="app_name">MacetApp</string>
+    
+    <!-- MainActivity -->
+    <string name="alarm_permission_title">Permisos de Alarma Necesarios</string>
+    <string name="alarm_permission_text">Para enviar notificaciones a la hora exacta, necesitamos permiso para programar alarmas exactas. Por favor, habilita este permiso en la configuración.</string>
+    <string name="open_settings">Abrir Configuración</string>
+    <string name="continue_anyway">Continuar de todos modos</string>
+
+    <!-- PlantIdentificationScreen -->
+    <string name="identify_plant_title">Identificar Planta</string>
+    <string name="back">Volver</string>
+    <string name="configure_api_key_prompt">Configura tu clave API de Gemini para empezar</string>
+    <string name="take_photo_prompt">Toma una foto o selecciona una imagen</string>
+    <string name="configure_api_key">Configurar Clave API</string>
+    <string name="camera">Cámara</string>
+    <string name="gallery">Galería</string>
+    <string name="plant_image_desc">Imagen de planta</string>
+    <string name="identifying_plant">Identificando planta...</string>
+    <string name="retry">Reintentar</string>
+    <string name="description_label">Descripción:</string>
+    <string name="care_instructions_label">Instrucciones de cuidado:</string>
+    <string name="watering_label">💧 Riego: %1$s</string>
+    <string name="sunlight_label">☀️ Luz: %1$s</string>
+    <string name="soil_label">🌱 Suelo: %1$s</string>
+    <string name="temperature_label">🌡️ Temperatura: %1$s</string>
+    <string name="humidity_label">💨 Humedad: %1$s</string>
+    <string name="another_image">Otra imagen</string>
+    <string name="add_to_collection">Agregar a mi colección</string>
+    <string name="api_key_required_title">Clave API requerida</string>
+    <string name="api_key_required_text">Para usar la función de identificación de plantas, necesitas configurar tu clave API de Gemini en la configuración.</string>
+    <string name="configure_now">Configurar ahora</string>
+    <string name="cancel">Cancelar</string>
+    <string name="camera_permission_title">Permiso de cámara necesario</string>
+    <string name="camera_permission_text">Se necesita permiso para acceder a la cámara y tomar fotos de plantas.</string>
+    <string name="grant">Conceder</string>
+    <string name="error_identifying">Error al identificar la planta</string>
+    <string name="unknown_species">Desconocida</string>
+    <string name="identified_with_ai">Identificado con IA: %1$s</string>
+
+    <!-- PlantListScreen -->
+    <string name="my_plants">Mis Plantas</string>
+    <string name="plants_needing_water">%1$d necesita%2$s riego</string>
+    <string name="identify_plant_desc">Identificar planta</string>
+    <string name="filter_desc">Filtrar</string>
+    <string name="sort_desc">Ordenar</string>
+    <string name="settings_desc">Configuración</string>
+    <string name="add_plant_desc">Agregar planta</string>
+    <string name="search_plants_placeholder">Buscar plantas...</string>
+    <string name="search_desc">Buscar</string>
+    <string name="clear_search_desc">Limpiar búsqueda</string>
+    <string name="filter_all">Todas las plantas</string>
+    <string name="filter_needs_water">Necesitan riego</string>
+    <string name="filter_no_needs_water">No necesitan riego</string>
+    <string name="sort_name">Ordenado por nombre</string>
+    <string name="sort_species">Ordenado por especie</string>
+    <string name="sort_next_watering">Ordenado por próximo riego</string>
+    <string name="sort_last_watered">Ordenado por último riego</string>
+    <string name="no_plants_found">No se encontraron plantas</string>
+    <string name="no_plants_yet">No hay plantas todavía</string>
+    <string name="try_other_filters">Intenta con otros filtros de búsqueda</string>
+    <string name="add_first_plant">Agrega tu primera planta usando el botón +</string>
+    <string name="water_plant_desc">Regar planta</string>
+    <string name="plant_watered_message">✓ %1$s ha sido regada</string>
+    <string name="delete_plant_desc">Eliminar planta</string>
+    <string name="filter_plants_title">Filtrar plantas</string>
+    <string name="ok">OK</string>
+    <string name="sort_plants_title">Ordenar plantas</string>
+    <string name="sort_option_name">Nombre</string>
+    <string name="sort_option_species">Especie</string>
+    <string name="sort_option_next_watering">Próximo riego</string>
+    <string name="sort_option_last_watered">Último riego</string>
+    <string name="delete_plant_title">Eliminar planta</string>
+    <string name="delete_plant_confirmation">¿Estás seguro de que deseas eliminar \'%1$s\'? Esta acción no se puede deshacer.</string>
+    <string name="delete">Eliminar</string>
+    <string name="last_watered_label">Último riego</string>
+    <string name="next_watering_label">Próximo riego</string>
+    <string name="needs_water_alert">¡NECESITA RIEGO!</string>
+    <string name="frequency_label">Frecuencia</string>
+    <string name="frequency_value">cada %1$d días</string>
+    <string name="light_label">Luz</string>
+
 </resources>

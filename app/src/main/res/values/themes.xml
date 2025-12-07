@@ -1,5 +1,63 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
+    <!-- Base App Theme - Using basic Material theme for compatibility -->
     <style name="Theme.PruebaAndroid" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!-- Ocean Theme - Calm blue waters -->
+    <style name="Theme.PruebaAndroid.Ocean" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:colorPrimary">@color/ocean_primary</item>
+        <item name="android:colorPrimaryDark">@color/ocean_primary</item>
+        <item name="android:colorAccent">@color/ocean_secondary</item>
+    </style>
+
+    <!-- Sunset Theme - Warm orange and red tones -->
+    <style name="Theme.PruebaAndroid.Sunset" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:colorPrimary">@color/sunset_primary</item>
+        <item name="android:colorPrimaryDark">@color/sunset_primary</item>
+        <item name="android:colorAccent">@color/sunset_secondary</item>
+    </style>
+
+    <!-- Forest Theme - Natural green tones -->
+    <style name="Theme.PruebaAndroid.Forest" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:colorPrimary">@color/forest_primary</item>
+        <item name="android:colorPrimaryDark">@color/forest_primary</item>
+        <item name="android:colorAccent">@color/forest_secondary</item>
+    </style>
+
+    <!-- Lavender Theme - Soft purple tones -->
+    <style name="Theme.PruebaAndroid.Lavender" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:colorPrimary">@color/lavender_primary</item>
+        <item name="android:colorPrimaryDark">@color/lavender_primary</item>
+        <item name="android:colorAccent">@color/lavender_secondary</item>
+    </style>
+
+    <!-- Midnight Theme - Dark elegant theme -->
+    <style name="Theme.PruebaAndroid.Midnight" parent="android:Theme.Material.NoActionBar">
+        <item name="android:colorPrimary">@color/midnight_primary</item>
+        <item name="android:colorPrimaryDark">@color/midnight_primary_container</item>
+        <item name="android:colorAccent">@color/midnight_secondary</item>
+    </style>
+
+    <!-- Coral Theme - Vibrant orange and teal -->
+    <style name="Theme.PruebaAndroid.Coral" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:colorPrimary">@color/coral_primary</item>
+        <item name="android:colorPrimaryDark">@color/coral_primary</item>
+        <item name="android:colorAccent">@color/coral_secondary</item>
+    </style>
+
+    <!-- Royal Theme - Elegant blue and purple -->
+    <style name="Theme.PruebaAndroid.Royal" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:colorPrimary">@color/royal_primary</item>
+        <item name="android:colorPrimaryDark">@color/royal_primary</item>
+        <item name="android:colorAccent">@color/royal_secondary</item>
+    </style>
+
+    <!-- Mint Theme - Fresh green tones -->
+    <style name="Theme.PruebaAndroid.Mint" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:colorPrimary">@color/mint_primary</item>
+        <item name="android:colorPrimaryDark">@color/mint_primary</item>
+        <item name="android:colorAccent">@color/mint_secondary</item>
+    </style>
+
 </resources>
